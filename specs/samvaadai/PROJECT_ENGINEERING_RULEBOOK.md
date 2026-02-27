@@ -1,6 +1,4 @@
-final?
-📘 SamvaadAI
-Project Engineering Rulebook
+📘 SamvaadAI : Project Engineering Rulebook
 
 Internal Engineering Handbook
 
