@@ -30,3 +30,14 @@ class ConversationResultsResponse(BaseModel):
     eligible: List[EligibilityResult]
     partially_eligible: List[EligibilityResult]
     ineligible: List[EligibilityResult]
+
+
+class EvaluateRequest(BaseModel):
+    """Request model for eligibility evaluation endpoint"""
+    profile: Optional[Dict[str, Any]]
+
+class EvaluateResponse(BaseModel):
+    """Response model for eligibility evaluation endpoint"""
+    eligible: List[Dict[str, Any]]
+    partially_eligible: List[Dict[str, Any]]
+    ineligible: List[Dict[str, Any]]

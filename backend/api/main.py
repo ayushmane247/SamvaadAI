@@ -1,37 +1,93 @@
 # backend\api\main.py
+"""
+FastAPI Application Entry Point.
 
-from fastapi import FastAPI
-from mangum import Mangum
-from api.routes import router
+Responsibilities:
+- Application initialization
+- Middleware registration
+- Router registration
+- Global exception handling
+- CORS configuration
+"""
+
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
 
+from api.routes import router
+from core.middleware import RequestTrackingMiddleware
+from core.config import config
+from core.logging_config import logger
+
+# Initialize FastAPI app
 app = FastAPI(
-    title="SamvaadAI API",
-    version="1.0.0",
-    root_path=""
+    title=config.API_TITLE,
+    version=config.API_VERSION,
+    root_path=config.API_ROOT_PATH
 )
 
-app.include_router(router)
+# Add request tracking middleware (must be first)
+app.add_middleware(RequestTrackingMiddleware)
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-handler = Mangum(app)
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(
-        status_code=500,
-        content={"error": "Internal server error"},
-    )
-
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten later
+    allow_origins=["*"],  # TODO: Tighten in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routes
+app.include_router(router)
+
+
+@app.get("/health")
+def health():
+    """
+    Health check endpoint.
+    
+    Returns:
+        Status indicator
+    """
+    return {"status": "ok", "version": config.API_VERSION}
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler.
+    
+    Ensures:
+    - No PII leakage
+    - No stack traces in production
+    - Structured error logging
+    
+    Args:
+        request: Request object
+        exc: Exception raised
+        
+    Returns:
+        Safe error response
+    """
+    request_id = getattr(request.state, "request_id", "unknown")
+    
+    logger.error(
+        f"Unhandled exception: {str(exc)}",
+        extra={"request_id": request_id, "error_type": type(exc).__name__},
+        exc_info=True
+    )
+    
+    # Safe error response (no internal details)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "request_id": request_id
+        },
+    )
+
+
+# Lambda handler
+handler = Mangum(app)
