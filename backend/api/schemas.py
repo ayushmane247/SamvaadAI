@@ -3,22 +3,12 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from typing import Literal
+
 
 class SessionStartResponse(BaseModel):
     session_id: str
     created_at: datetime
     expires_at: datetime
-
-class ConversationInputRequest(BaseModel):
-    session_id: str
-    user_input: str
-    language: Literal["en", "hi", "mr"]
-
-class ConversationInputResponse(BaseModel):
-    next_question: Optional[str]
-    collected_attributes: Dict[str, Any]
-    is_complete: bool
 
 class EligibilityResult(BaseModel):
     scheme_id: str
@@ -41,3 +31,20 @@ class EvaluateResponse(BaseModel):
     eligible: List[Dict[str, Any]]
     partially_eligible: List[Dict[str, Any]]
     ineligible: List[Dict[str, Any]]
+
+
+# ---- Conversation Endpoint Schemas ----
+
+class ConversationRequest(BaseModel):
+    """Request model for POST /v1/conversation"""
+    query: str
+    language: Optional[str] = "en"
+    session_id: Optional[str] = None
+
+
+class ConversationResponse(BaseModel):
+    """Response model for POST /v1/conversation"""
+    profile: Dict[str, Any]
+    eligibility: Dict[str, Any]
+    response: str
+    session_id: Optional[str] = None

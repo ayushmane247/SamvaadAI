@@ -20,26 +20,30 @@ from core.middleware import RequestTrackingMiddleware
 from core.config import config
 from core.logging_config import logger
 
+config.validate()
+
+root_path = "/prod" if config.is_production() else ""
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title=config.API_TITLE,
     version=config.API_VERSION,
-    root_path=config.API_ROOT_PATH
+    root_path=root_path
 )
 
-# Add request tracking middleware (must be first)
+# Middleware
 app.add_middleware(RequestTrackingMiddleware)
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Tighten in production
+    allow_origins=config.ALLOWED_ORIGINS.split(",") if config.is_production() else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API routes
+# Single canonical router
 app.include_router(router)
 
 
