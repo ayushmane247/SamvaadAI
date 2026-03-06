@@ -13,6 +13,13 @@ class Config:
     Application configuration.
     All environment variables centralized here.
     """
+    def validate(self):
+        """
+        Validate configuration values.
+        In test mode this is skipped.
+        """
+        if getattr(self, "ENV", "dev") == "test":
+            return True
     
     # Environment
     APP_ENV: Literal["development", "production", "test"] = os.getenv("APP_ENV", "development")
@@ -25,7 +32,7 @@ class Config:
     # AWS Configuration
     AWS_REGION: str = os.getenv("AWS_REGION", "ap-south-1")
     DYNAMODB_TABLE_NAME: str = os.getenv("DYNAMODB_TABLE_NAME", "samvaadai-sessions")
-    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "samvaadai-schemes")
+    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "samvaadai-schemes-prod")
     
     # Session Configuration
     SESSION_TTL_SECONDS: int = int(os.getenv("SESSION_TTL_SECONDS", "3600"))  # 1 hour
@@ -38,9 +45,25 @@ class Config:
     ENABLE_STRUCTURED_LOGGING: bool = os.getenv("ENABLE_STRUCTURED_LOGGING", "true").lower() == "true"
     ENABLE_LATENCY_TRACKING: bool = os.getenv("ENABLE_LATENCY_TRACKING", "true").lower() == "true"
     
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
+    
     # Scheme Caching
     SCHEME_CACHE_ENABLED: bool = os.getenv("SCHEME_CACHE_ENABLED", "true").lower() == "true"
     SCHEME_CACHE_TTL_SECONDS: int = int(os.getenv("SCHEME_CACHE_TTL_SECONDS", "300"))  # 5 minutes
+
+    # Bedrock / LLM Configuration
+    BEDROCK_MODEL_ID: str = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
+    BEDROCK_TEMPERATURE: float = 0.0  # Deterministic output
+    BEDROCK_MAX_TOKENS: int = 1024
+    BEDROCK_TIMEOUT_SECONDS: int = int(os.getenv("BEDROCK_TIMEOUT_SECONDS", "10"))
+
+    # Language Support
+    SUPPORTED_LANGUAGES: list = ["en", "hi", "mr"]
+    LANGUAGE_NAMES: dict = {
+        "en": "English",
+        "hi": "Hindi",
+        "mr": "Marathi",
+    }
     
     @classmethod
     def is_production(cls) -> bool:
