@@ -1,0 +1,29 @@
+{
+  "scheme_id": "SOLAR_SPRAY_PUMP",
+  "name": "Solar Spray Pump Subsidy",
+  "state": "Maharashtra",
+  "eligibility_criteria": [
+    {
+      "field": "occupation",
+      "operator": "equals",
+      "value": "farmer",
+      "explanation": "Must be actively engaged in agriculture"
+    },
+    {
+      "field": "land_holding",
+      "operator": "greater_than",
+      "value": 0,
+      "explanation": "Must own agricultural land"
+    },
+    {
+      "field": "application_platform",
+      "operator": "equals",
+      "value": "MahaDBT",
+      "explanation": "Apply through MahaDBT portal"
+    }
+  ],
+  "logic": "AND",
+  "benefit_summary": "Subsidy for solar-powered spray pumps",
+  "source_url": "https://mahadbt.maharashtra.gov.in",
+  "last_verified_date": "2026-03-01"
+}

@@ -1,30 +1,39 @@
 import { NavLink } from "react-router-dom";
-import { MessageSquare, BarChart2, X, LayoutDashboard } from "lucide-react";
+import { MessageSquare, BarChart2, X, LayoutDashboard, Globe } from "lucide-react";
+import useUIStore from "../store/useUIStore";
+import { t } from "../lib/i18n";
+
+const LANGUAGES = [
+  { code: "en", label: "EN" },
+  { code: "hi", label: "हिं" },
+  { code: "mr", label: "मरा" },
+];
 
 const Sidebar = ({ isOpen, onClose }) => {
+  const language = useUIStore((s) => s.language);
+  const setLanguage = useUIStore((s) => s.setLanguage);
+
   const navItems = [
-    { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
-    { name: "Chat", path: "/dashboard/chat", icon: MessageSquare },
-    { name: "Results", path: "/dashboard/results", icon: BarChart2 },
+    { nameKey: "overview", path: "/dashboard", icon: LayoutDashboard },
+    { nameKey: "chat", path: "/dashboard/chat", icon: MessageSquare },
+    { nameKey: "results", path: "/dashboard/results", icon: BarChart2 },
   ];
 
   return (
     <>
       {/* Mobile Overlay */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity lg:hidden ${
-          isOpen
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity lg:hidden ${isOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
-        }`}
+          }`}
         onClick={onClose}
       />
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[260px] glass border-r border-white/10 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-[260px] glass border-r border-white/10 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) lg:translate-x-0 flex flex-col ${isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex items-center justify-between h-20 px-6">
           <div className="flex items-center gap-2">
@@ -43,7 +52,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -51,10 +60,9 @@ const Sidebar = ({ isOpen, onClose }) => {
               onClick={onClose}
               end={item.path === "/dashboard"}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-300 group relative overflow-hidden ${
-                  isActive
-                    ? "text-blue-600 dark:text-white"
-                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-300 group relative overflow-hidden ${isActive
+                  ? "text-blue-600 dark:text-white"
+                  : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                 }`
               }
             >
@@ -67,7 +75,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     size={18}
                     className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-blue-600 dark:text-blue-400" : ""}`}
                   />
-                  <span className="relative z-10">{item.name}</span>
+                  <span className="relative z-10">{t(item.nameKey, language)}</span>
                   {isActive && (
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-600 rounded-l-full shadow-[0_0_10px_#2563eb]" />
                   )}
@@ -76,6 +84,30 @@ const Sidebar = ({ isOpen, onClose }) => {
             </NavLink>
           ))}
         </nav>
+
+        {/* ── Language Selector ── */}
+        <div className="p-4 border-t border-gray-200/50 dark:border-white/5">
+          <div className="flex items-center gap-2 px-2 mb-3">
+            <Globe size={14} className="text-gray-400" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              {t("language", language)}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            {LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => setLanguage(lang.code)}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${language === lang.code
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+                    : "bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"
+                  }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </aside>
     </>
   );

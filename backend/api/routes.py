@@ -30,6 +30,7 @@ from api.schemas import (
 from orchestration.conversation_manager import ConversationManager
 from orchestration.eligibility_service import evaluate_profile
 from core.logging_config import logger
+from core.middleware import sanitize_input
 from datetime import datetime, timedelta, UTC
 import uuid
 
@@ -52,9 +53,10 @@ def conversation(request_obj: Request, payload: ConversationRequest):
     Process a conversational query through the full pipeline.
 
     Pipeline:
-    1. LLM profile extraction
-    2. Deterministic eligibility evaluation
-    3. LLM response generation
+    1. Sanitize user input (prompt injection defense)
+    2. LLM profile extraction
+    3. Deterministic eligibility evaluation
+    4. LLM response generation
 
     Args:
         request_obj: FastAPI request (for request_id).
@@ -66,8 +68,11 @@ def conversation(request_obj: Request, payload: ConversationRequest):
     request_id = getattr(request_obj.state, "request_id", "unknown")
 
     try:
+        # Sanitize query before LLM processing
+        clean_query = sanitize_input(payload.query)
+
         result = _manager.process_user_query(
-            query=payload.query,
+            query=clean_query,
             language=payload.language or "en",
             session_id=payload.session_id,
         )

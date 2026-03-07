@@ -416,3 +416,129 @@ class LLMService:
         except Exception as e:
             logger.error(f"[LLM] response generation failed: {e}")
             return get_fallback_explanation(rule_output, language)
+
+    # =========================================
+    # Single-Call Pipeline (Cost Optimization)
+    # =========================================
+
+    _PROCESS_QUERY_PROMPT = """You are a government welfare scheme assistant for India.
+
+Given the user's message, do TWO things in ONE response:
+
+1. EXTRACT their profile information from the text.
+2. GENERATE a helpful conversational response in {language_name}.
+
+If they haven't provided enough information, your response should ask for the missing details.
+If they have provided information, acknowledge it and ask for anything still missing.
+
+Required profile fields: age, occupation, income_band (e.g. "2L", "5L", "10L+"), location.state
+
+Return ONLY this JSON (no markdown, no extra text):
+{{
+  "profile": {{
+    "age": <integer or null>,
+    "occupation": <string or null>,
+    "income_band": <string or null>,
+    "location": {{"state": <string or null>}}
+  }},
+  "assistant_response": "<your helpful response in {language_name}>",
+  "missing_fields": [<list of field names still null>]
+}}
+
+User message: {user_text}"""
+
+    def process_query(
+        self,
+        query: str,
+        language: str = "en",
+    ) -> Dict[str, Any]:
+        """
+        Single-call pipeline: extract profile AND generate response in one Bedrock call.
+
+        This replaces the two-call pattern (extract_user_profile + generate_response)
+        for conversational turns, reducing Bedrock costs by ~50%.
+
+        Args:
+            query: User's natural language input.
+            language: Language code (en, hi, mr).
+
+        Returns:
+            Dict with keys:
+            - profile: Extracted user profile dict
+            - assistant_response: Conversational response string
+            - missing_fields: List of profile fields still null
+        """
+        if language not in SUPPORTED_LANGUAGES:
+            language = "en"
+
+        language_name = LANGUAGE_NAMES.get(language, "English")
+
+        prompt = self._PROCESS_QUERY_PROMPT.format(
+            language_name=language_name,
+            user_text=query,
+        )
+
+        try:
+            logger.info("[LLM] process_query started (single-call pipeline)")
+            t0 = time.perf_counter()
+
+            response = self.client.invoke_model(prompt)
+            latency = time.perf_counter() - t0
+            logger.info(f"[LLM_LATENCY] process_query={latency:.2f}s")
+
+            parsed = self._extract_json_from_response(response)
+
+            if parsed is None:
+                logger.warning("[LLM] process_query: invalid JSON, falling back")
+                return self._process_query_fallback(query, language)
+
+            # Validate profile sub-structure
+            profile = parsed.get("profile")
+            if not profile or not isinstance(profile, dict):
+                logger.warning("[LLM] process_query: missing profile key, falling back")
+                return self._process_query_fallback(query, language)
+
+            # Ensure profile has required structure
+            if not self._validate_profile_schema(profile):
+                # Try to salvage what we can
+                profile = {
+                    "age": profile.get("age"),
+                    "occupation": profile.get("occupation"),
+                    "income_band": profile.get("income_band"),
+                    "location": profile.get("location", {"state": None}),
+                }
+
+            assistant_response = parsed.get("assistant_response", "")
+            missing_fields = parsed.get("missing_fields", [])
+
+            # Guardrail check on assistant_response
+            if assistant_response and not self._check_eligibility_guardrail(assistant_response):
+                logger.warning("[LLM] process_query: guardrail triggered on response")
+                assistant_response = get_error_message(language)
+
+            logger.info(
+                "[LLM] process_query completed",
+                extra={"missing_fields": len(missing_fields)},
+            )
+
+            return {
+                "profile": profile,
+                "assistant_response": assistant_response,
+                "missing_fields": missing_fields,
+            }
+
+        except TimeoutError:
+            logger.error("[LLM] process_query timeout")
+            return self._process_query_fallback(query, language)
+        except Exception as e:
+            logger.error(f"[LLM] process_query failed: {e}")
+            return self._process_query_fallback(query, language)
+
+    def _process_query_fallback(self, query: str, language: str) -> Dict[str, Any]:
+        """Return safe fallback when process_query fails."""
+        return {
+            "profile": get_default_profile(language),
+            "assistant_response": get_error_message(language),
+            "missing_fields": ["age", "occupation", "income_band", "location.state"],
+        }
+

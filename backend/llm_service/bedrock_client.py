@@ -9,6 +9,7 @@ Architectural guarantees:
 - Retry with exponential backoff (2 attempts)
 - Timeout protection (configurable)
 - Structured error handling
+- Graceful fallback on AccessDeniedException / INVALID_PAYMENT_INSTRUMENT
 """
 
 import json
@@ -29,6 +30,61 @@ from llm_service.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# =====================================
+# Custom Exception
+# =====================================
+
+class BedrockUnavailableError(Exception):
+    """
+    Raised when Bedrock is unavailable due to billing or access issues.
+
+    Triggers:
+    - AccessDeniedException
+    - INVALID_PAYMENT_INSTRUMENT
+    - UnrecognizedClientException
+
+    When raised, the system should fallback to deterministic processing.
+    """
+
+    def __init__(self, error_code: str, message: str = ""):
+        self.error_code = error_code
+        super().__init__(f"Bedrock unavailable ({error_code}): {message}")
+
+
+# Error codes that indicate Bedrock is fundamentally unavailable
+_UNAVAILABLE_ERROR_CODES = {
+    "AccessDeniedException",
+    "UnrecognizedClientException",
+    "ValidationException",
+}
+
+# Error messages that indicate payment issues
+_PAYMENT_ERROR_PHRASES = {
+    "INVALID_PAYMENT_INSTRUMENT",
+    "payment instrument",
+    "billing",
+    "subscription",
+}
+
+# Module-level availability flag
+_bedrock_available: bool = True
+
+
+def is_available() -> bool:
+    """Check if Bedrock is currently available."""
+    return _bedrock_available
+
+
+def _mark_unavailable(error_code: str):
+    """Mark Bedrock as unavailable after a fatal error."""
+    global _bedrock_available
+    _bedrock_available = False
+    logger.warning(
+        f"Bedrock marked UNAVAILABLE due to: {error_code}. "
+        "System will use deterministic fallback."
+    )
 
 
 class BedrockClient:
@@ -87,10 +143,17 @@ class BedrockClient:
             The model's text response.
 
         Raises:
-            ClientError: If the Bedrock API call fails.
+            BedrockUnavailableError: If Bedrock is unavailable (billing/access).
+            ClientError: If the Bedrock API call fails for other reasons.
             TimeoutError: If the request exceeds the configured timeout.
             ValueError: If the response cannot be parsed.
         """
+        # Fast-fail if we already know Bedrock is down
+        if not _bedrock_available:
+            raise BedrockUnavailableError(
+                "CACHED", "Bedrock was previously marked unavailable"
+            )
+
         body = json.dumps({
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": MAX_TOKENS,
@@ -109,7 +172,11 @@ class BedrockClient:
             )
 
             result = json.loads(response["body"].read())
-            text = result.get("content", [{}])[0].get("text", "")
+            text = "".join(
+                block.get("text", "")
+                for block in result.get("content", [])
+                if block.get("type") == "text"
+            )
 
             if not text:
                 logger.warning("Bedrock returned empty response")
@@ -119,14 +186,31 @@ class BedrockClient:
 
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
+            error_message = e.response["Error"].get("Message", "")
+
+            # Check for fatal unavailability errors
+            if error_code in _UNAVAILABLE_ERROR_CODES:
+                _mark_unavailable(error_code)
+                raise BedrockUnavailableError(error_code, error_message)
+
+            # Check for payment-related error messages
+            for phrase in _PAYMENT_ERROR_PHRASES:
+                if phrase.lower() in error_message.lower():
+                    _mark_unavailable(f"{error_code}:{phrase}")
+                    raise BedrockUnavailableError(error_code, error_message)
+
             if error_code == "ThrottlingException":
                 logger.warning("Bedrock rate limited, retrying may help")
+
             logger.error(f"Bedrock API error: {error_code}")
             raise
 
         except BotoCoreError as e:
             logger.error(f"Bedrock connection error: {e}")
             raise
+
+        except BedrockUnavailableError:
+            raise  # Re-raise without wrapping
 
         except Exception as e:
             logger.error(f"Bedrock invoke_model failed: {e}")

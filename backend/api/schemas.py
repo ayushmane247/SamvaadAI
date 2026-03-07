@@ -1,6 +1,6 @@
 # backend\api\schemas.py
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
@@ -37,9 +37,9 @@ class EvaluateResponse(BaseModel):
 
 class ConversationRequest(BaseModel):
     """Request model for POST /v1/conversation"""
-    query: str
-    language: Optional[str] = "en"
-    session_id: Optional[str] = None
+    query: str = Field(..., min_length=1, max_length=2000)
+    language: Optional[str] = Field("en", pattern=r"^(en|hi|mr)$")
+    session_id: Optional[str] = Field(None, max_length=100)
 
 
 class ConversationResponse(BaseModel):
@@ -47,4 +47,6 @@ class ConversationResponse(BaseModel):
     profile: Dict[str, Any]
     eligibility: Dict[str, Any]
     response: str
+    schemes: List[Dict[str, Any]] = []
+    documents: List[str] = []
     session_id: Optional[str] = None

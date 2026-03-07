@@ -5,7 +5,7 @@ Responsibilities:
 - Load scheme JSON files from S3
 - Provide in-memory TTL cache
 - Deterministic ordering guarantee
-- Graceful failure handling
+- Graceful failure handling with prototype scheme fallback
 - Cold-start preload for Lambda
 
 Architectural Guarantees:
@@ -13,6 +13,7 @@ Architectural Guarantees:
 - Deterministic ordering (sorted by scheme_id)
 - Same dataset version → same evaluation result
 - No per-request S3 call (cache enforced)
+- Fallback to embedded prototype schemes when S3 unavailable
 """
 
 from typing import List, Dict, Optional
@@ -29,10 +30,14 @@ from core.logging_config import logger
 # AWS S3 Client (Module Level - Lambda Reuse)
 # =====================================
 
-_s3_client = boto3.client(
-    "s3",
-    region_name=config.AWS_REGION
-)
+try:
+    _s3_client = boto3.client(
+        "s3",
+        region_name=config.AWS_REGION
+    )
+except Exception:
+    _s3_client = None
+    logger.warning("S3 client initialization failed — using prototype schemes")
 
 
 # =====================================
@@ -106,6 +111,9 @@ def _validate_scheme(scheme: Dict) -> bool:
 def _load_schemes_from_s3() -> List[Dict]:
     logger.info("Loading schemes from S3...")
 
+    if _s3_client is None:
+        raise RuntimeError("S3 client not available")
+
     schemes: List[Dict] = []
 
     try:
@@ -163,10 +171,10 @@ def load_schemes() -> List[Dict]:
     global _scheme_cache, _cache_timestamp
 
     # -------------------------
-    # Test Environment Bypass
+    # Test/Dev Environment → Prototype Schemes
     # -------------------------
-    if config.is_test():
-        return _load_mock_schemes()
+    if config.is_test() or config.is_development():
+        return _load_prototype_schemes()
 
     # -------------------------
     # Cache Check
@@ -187,13 +195,15 @@ def load_schemes() -> List[Dict]:
         return schemes
 
     except Exception as e:
-        logger.error(f"Failed to load schemes: {str(e)}")
+        logger.error(f"Failed to load schemes from S3: {str(e)}")
 
         if _scheme_cache is not None:
             logger.warning("Returning stale cache due to S3 failure")
             return _scheme_cache
 
-        raise
+        # Final fallback: use prototype schemes
+        logger.warning("S3 failed and no cache — falling back to prototype schemes")
+        return _load_prototype_schemes()
 
 
 # =====================================
@@ -211,7 +221,7 @@ def invalidate_cache() -> None:
 # Cold-Start Preload (Lambda Optimization)
 # =====================================
 
-if not config.is_test():
+if config.is_production():
     try:
         load_schemes()
         logger.info("Schemes preloaded at cold start.")
@@ -220,65 +230,143 @@ if not config.is_test():
 
 
 # =====================================
-# Mock Schemes (Test Environment Only)
+# Prototype Schemes — 5 Real Government Schemes
 # =====================================
 
-def _load_mock_schemes() -> List[Dict]:
+def _load_prototype_schemes() -> List[Dict]:
+    """
+    5 real Indian government schemes with eligibility rules,
+    required documents, and official URLs.
+    Used in dev/test mode and as S3 fallback.
+    """
     schemes = [
         {
-            "scheme_id": "FARMER_SUPPORT",
-            "name": "Farmer Support Scheme",
+            "scheme_id": "PM_KISAN",
+            "name": "PM Kisan Samman Nidhi",
             "eligibility_criteria": [
+                {
+                    "field": "farmer_status",
+                    "operator": "equals",
+                    "value": "true",
+                    "explanation": "Must be a farmer"
+                },
                 {
                     "field": "occupation",
                     "operator": "equals",
                     "value": "farmer",
-                    "explanation": "Must be farmer"
+                    "explanation": "Occupation must be farming"
                 }
             ],
-            "logic": "AND",
-            "benefit_summary": "Financial support for farmers",
-            "source_url": "https://example.com/farmer-support",
-            "last_verified_date": "2025-02-15"
+            "logic": "OR",
+            "benefit_summary": "₹6,000 per year in three installments directly to bank account for small and marginal farmers",
+            "source_url": "https://pmkisan.gov.in/",
+            "last_verified_date": "2026-03-01",
+            "required_documents": [
+                "Aadhaar Card",
+                "Land ownership records",
+                "Bank account details",
+                "Mobile number linked to Aadhaar"
+            ]
         },
         {
-            "scheme_id": "LOW_INCOME_SUPPORT",
-            "name": "Low Income Support Scheme",
+            "scheme_id": "AYUSHMAN_BHARAT",
+            "name": "Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana",
             "eligibility_criteria": [
                 {
                     "field": "income",
                     "operator": "less_than",
-                    "value": 100000,
-                    "explanation": "Annual income < 1 lakh"
+                    "value": 500000,
+                    "explanation": "Annual family income below ₹5 lakh"
                 }
             ],
             "logic": "AND",
-            "benefit_summary": "Financial assistance for low income families",
-            "source_url": "https://example.com/low-income-support",
-            "last_verified_date": "2025-02-15"
+            "benefit_summary": "Health insurance cover of ₹5 lakh per family per year for secondary and tertiary hospitalization",
+            "source_url": "https://pmjay.gov.in/",
+            "last_verified_date": "2026-03-01",
+            "required_documents": [
+                "Aadhaar Card",
+                "Ration Card / BPL certificate",
+                "Income certificate",
+                "Family ID / Family composition"
+            ]
         },
         {
-    "scheme_id": "YOUTH_EMPLOYMENT",
-    "name": "Youth Employment Scheme",
-    "eligibility_criteria": [
-        {
-            "field": "age",
-            "operator": "between",
-            "value": [18, 35],
-            "explanation": "Age between 18 and 35"
+            "scheme_id": "PM_AWAS_YOJANA",
+            "name": "Pradhan Mantri Awas Yojana",
+            "eligibility_criteria": [
+                {
+                    "field": "income",
+                    "operator": "less_than",
+                    "value": 300000,
+                    "explanation": "Annual household income below ₹3 lakh (EWS category)"
+                }
+            ],
+            "logic": "AND",
+            "benefit_summary": "Financial assistance up to ₹2.67 lakh for construction of pucca house with basic amenities",
+            "source_url": "https://pmaymis.gov.in/",
+            "last_verified_date": "2026-03-01",
+            "required_documents": [
+                "Aadhaar Card",
+                "Income certificate",
+                "Proof of land ownership or allotment letter",
+                "Bank account details",
+                "Affidavit of not owning a pucca house"
+            ]
         },
         {
-            "field": "state",
-            "operator": "equals",
-            "value": "Maharashtra",
-            "explanation": "Must be from Maharashtra"
+            "scheme_id": "NATIONAL_SCHOLARSHIP",
+            "name": "National Scholarship Portal - Central Sector Scheme",
+            "eligibility_criteria": [
+                {
+                    "field": "student_status",
+                    "operator": "equals",
+                    "value": "true",
+                    "explanation": "Must be a student"
+                },
+                {
+                    "field": "occupation",
+                    "operator": "equals",
+                    "value": "student",
+                    "explanation": "Must be currently studying"
+                }
+            ],
+            "logic": "OR",
+            "benefit_summary": "Merit-based scholarship up to ₹20,000 per annum for higher education students from economically weaker families",
+            "source_url": "https://scholarships.gov.in/",
+            "last_verified_date": "2026-03-01",
+            "required_documents": [
+                "Aadhaar Card",
+                "Mark sheets / certificates",
+                "Income certificate of parents",
+                "Bank account details",
+                "Institution verification letter",
+                "Caste certificate (if applicable)"
+            ]
+        },
+        {
+            "scheme_id": "PM_MUDRA_YOJANA",
+            "name": "Pradhan Mantri Mudra Yojana",
+            "eligibility_criteria": [
+                {
+                    "field": "occupation",
+                    "operator": "in",
+                    "value": ["business", "self-employed", "shopkeeper"],
+                    "explanation": "Must be a non-farm small business owner or self-employed"
+                }
+            ],
+            "logic": "AND",
+            "benefit_summary": "Collateral-free loans up to ₹10 lakh for micro and small enterprises under Shishu, Kishore, and Tarun categories",
+            "source_url": "https://www.mudra.org.in/",
+            "last_verified_date": "2026-03-01",
+            "required_documents": [
+                "Aadhaar Card",
+                "PAN Card",
+                "Business plan / proposal",
+                "Proof of business existence",
+                "Bank statements (6 months)",
+                "Passport-size photographs"
+            ]
         }
-    ],
-    "logic": "AND",
-    "benefit_summary": "Employment assistance for youth",
-    "source_url": "https://example.com/youth-employment",
-    "last_verified_date": "2025-02-15"
-}
     ]
 
     schemes.sort(key=lambda s: s["scheme_id"])
