@@ -1,0 +1,29 @@
+{
+  "scheme_id": "SEED_MINI_KITS",
+  "name": "Seed Mini Kits",
+  "state": "Maharashtra",
+  "eligibility_criteria": [
+    {
+      "field": "crop_type",
+      "operator": "in",
+      "value": ["oilseeds", "pulses"],
+      "explanation": "For oilseed and pulse crop cultivation"
+    },
+    {
+      "field": "land_holding",
+      "operator": "greater_than",
+      "value": 0,
+      "explanation": "Must own agricultural land"
+    },
+    {
+      "field": "farmer_category",
+      "operator": "in",
+      "value": ["small", "marginal"],
+      "explanation": "Priority for small and marginal farmers"
+    }
+  ],
+  "logic": "AND",
+  "benefit_summary": "Free seed mini kits distribution",
+  "source_url": "https://mahadbt.maharashtra.gov.in",
+  "last_verified_date": "2026-03-01"
+}

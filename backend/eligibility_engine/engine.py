@@ -50,6 +50,7 @@ def _evaluate_single_scheme(profile: dict, scheme: dict) -> dict:
     benefit = scheme.get("benefit_summary", "")
     source_url = scheme.get("source_url", "")
     last_verified = scheme.get("last_verified_date", "")
+    required_documents = scheme.get("required_documents", [])
     
     if not criteria:
         return {
@@ -60,7 +61,8 @@ def _evaluate_single_scheme(profile: dict, scheme: dict) -> dict:
             "trace": [],
             "benefit": benefit,
             "source_url": source_url,
-            "last_verified_date": last_verified
+            "last_verified_date": last_verified,
+            "required_documents": required_documents
         }
     
     trace = []
@@ -106,7 +108,8 @@ def _evaluate_single_scheme(profile: dict, scheme: dict) -> dict:
             "trace": trace,
             "benefit": benefit,
             "source_url": source_url,
-            "last_verified_date": last_verified
+            "last_verified_date": last_verified,
+            "required_documents": required_documents
         }
     elif is_partial:
         missing = [r.get("field", "") for r in trace if r.get("result") == "fail"]
@@ -121,7 +124,8 @@ def _evaluate_single_scheme(profile: dict, scheme: dict) -> dict:
             "trace": trace,
             "benefit": benefit,
             "source_url": source_url,
-            "last_verified_date": last_verified
+            "last_verified_date": last_verified,
+            "required_documents": required_documents
         }
     else:
         return {
@@ -132,5 +136,6 @@ def _evaluate_single_scheme(profile: dict, scheme: dict) -> dict:
             "trace": trace,
             "benefit": benefit,
             "source_url": source_url,
-            "last_verified_date": last_verified
+            "last_verified_date": last_verified,
+            "required_documents": required_documents
         }

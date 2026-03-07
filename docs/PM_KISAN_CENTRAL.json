@@ -1,0 +1,23 @@
+{
+  "scheme_id": "PM_KISAN_CENTRAL",
+  "name": "PM Kisan Samman Nidhi",
+  "state": "Maharashtra",
+  "eligibility_criteria": [
+    {
+      "field": "land_holding",
+      "operator": "greater_than",
+      "value": 0,
+      "explanation": "Must own cultivable agricultural land"
+    },
+    {
+      "field": "exclusion",
+      "operator": "not_in",
+      "value": ["institutional_landholder", "govt_employee", "income_tax_payer"],
+      "explanation": "Excludes institutional owners, pensioners, professionals"
+    }
+  ],
+  "logic": "AND",
+  "benefit_summary": "₹6,000 per year in 3 installments of ₹2,000 each",
+  "source_url": "https://pmkisan.gov.in",
+  "last_verified_date": "2026-03-01"
+}

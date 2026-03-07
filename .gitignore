@@ -57,3 +57,22 @@ htmlcov/
 *.sqlite3
 
 .config.kiro
+
+.aider*
+
+
+docs\AI_ENGINEERING_WORKFLOW.md
+docs\BACKEND_EXECUTION_ROADMAP.md
+docs\ENGINEERING_ARCHITECTURE_REVIEW.md
+docs\PROJECT_ENGINEERING_RULEBOOK.md
+
+backend\llm_service\MODULE_OVERVIEW.md
+
+frontend\FRONTEND_INTEGRATION_PLAN.md
+frontend\PUSHKAR_QUICK_START.md
+frontend\tldrawFile.png
+frontend\UI_IMPROVEMENTS_REQUIRED.md
+
+docs\PHASE_12_READINESS.md
+docs\PHASE_13_SIMULATION.md
+docs\PHASE_14_FINAL_REPORT.md

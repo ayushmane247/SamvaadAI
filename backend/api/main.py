@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 from api.routes import router
-from core.middleware import RequestTrackingMiddleware
+from core.middleware import RequestTrackingMiddleware, RateLimitMiddleware
 from core.config import config
 from core.logging_config import logger
 
@@ -32,9 +32,14 @@ app = FastAPI(
     root_path=root_path
 )
 
-# Middleware
+# Middleware (order matters: outermost runs first)
+# 1. Request tracking (outermost — adds request ID + logging)
 app.add_middleware(RequestTrackingMiddleware)
 
+# 2. Rate limiting (before CORS — blocks excess traffic early)
+app.add_middleware(RateLimitMiddleware)
+
+# 3. CORS (innermost of custom middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS.split(",") if config.is_production() else ["*"],

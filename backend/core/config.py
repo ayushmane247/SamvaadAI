@@ -64,6 +64,10 @@ class Config:
         "hi": "Hindi",
         "mr": "Marathi",
     }
+
+    # Rate Limiting
+    RATE_LIMIT_REQUESTS: int = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))
+    RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
     
     @classmethod
     def is_production(cls) -> bool:
