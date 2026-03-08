@@ -28,6 +28,7 @@ from llm_service.fallback_templates import (
     get_missing_info_message,
     get_fallback_explanation,
 )
+from core.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,19 @@ class InferenceGateway:
         self._cache: Dict[int, Dict[str, Any]] = {}
         self._cache_hits = 0
         self._cache_misses = 0
-        self._bedrock_available = is_available()
-        logger.info(
-            f"InferenceGateway initialized (bedrock_available={self._bedrock_available})"
-        )
+
+        # Respect BEDROCK_ENABLED flag — if false, skip Bedrock entirely
+        if not config.BEDROCK_ENABLED:
+            self._bedrock_available = False
+            logger.info(
+                "InferenceGateway initialized in DETERMINISTIC mode "
+                "(BEDROCK_ENABLED=false)"
+            )
+        else:
+            self._bedrock_available = is_available()
+            logger.info(
+                f"InferenceGateway initialized (bedrock_available={self._bedrock_available})"
+            )
 
     def process(self, query: str, language: str = "en") -> Dict[str, Any]:
         """

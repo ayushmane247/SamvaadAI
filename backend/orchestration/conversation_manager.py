@@ -30,6 +30,7 @@ from llm_service.profile_extractor import extract_profile
 from orchestration.eligibility_service import evaluate_profile as _default_evaluate
 from orchestration.profile_memory import ProfileMemory
 from core.logging_config import logger
+from core.config import config
 
 
 # ── Guards ────────────────────────────────────────────────────────
@@ -125,6 +126,14 @@ class ConversationManager:
             extraction = extract_profile(query, language)
             extracted_profile = extraction["profile"]
 
+            logger.info(
+                "Profile extracted",
+                extra={
+                    "field_count": len(extracted_profile),
+                    "fields": list(extracted_profile.keys()),
+                },
+            )
+
             # ── Step 2 — ProfileMemory update ──
             memory = self._get_memory(session_id)
             memory.update(extracted_profile)
@@ -134,6 +143,18 @@ class ConversationManager:
             # ── Step 3 — Deterministic eligibility evaluation (free) ──
             eligibility = self.evaluate(profile)
 
+            logger.info(
+                "Eligibility evaluated",
+                extra={
+                    "eligible_count": len(eligibility.get("eligible", [])),
+                    "partial_count": len(eligibility.get("partially_eligible", [])),
+                    "ineligible_count": len(eligibility.get("ineligible", [])),
+                    "eligible_ids": [
+                        s.get("scheme_id") for s in eligibility.get("eligible", [])
+                    ],
+                },
+            )
+
             # ── Step 4 — Template response generation ──
             response = self._build_template_response(
                 eligibility, missing_fields, language
@@ -141,11 +162,13 @@ class ConversationManager:
 
             # ── Step 5 — Conditional LLM enhancement ──
             # Only call LLM if:
+            #   - BEDROCK_ENABLED flag is true
             #   - Template response is below threshold length
             #   - Bedrock is available
             #   - Profile has enough data to justify the cost
             if (
-                len(response) < LLM_ENHANCEMENT_THRESHOLD
+                config.BEDROCK_ENABLED
+                and len(response) < LLM_ENHANCEMENT_THRESHOLD
                 and self.gateway.bedrock_available
                 and not missing_fields
             ):
@@ -163,8 +186,11 @@ class ConversationManager:
                             response = enhanced
                     except Exception as e:
                         logger.warning(
-                            f"LLM enhancement failed, using template: {e}"
+                            "Bedrock enhancement failed — using template response",
+                            extra={"error": str(e), "error_type": type(e).__name__},
                         )
+            elif not config.BEDROCK_ENABLED:
+                logger.info("Bedrock skipped — BEDROCK_ENABLED=false, using template response")
 
             # ── Step 6 — History management with guard ──
             history = self._get_history(session_id)

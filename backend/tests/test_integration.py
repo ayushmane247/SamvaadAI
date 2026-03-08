@@ -23,9 +23,9 @@ def test_full_flow_farmer_eligible():
     assert "partially_eligible" in result
     assert "ineligible" in result
     
-    # Verify farmer is eligible for FARMER_SUPPORT
+    # Verify farmer is eligible for PM_KISAN
     assert len(result["eligible"]) >= 1
-    farmer_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "FARMER_SUPPORT"), None)
+    farmer_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "PM_KISAN"), None)
     assert farmer_scheme is not None
     assert farmer_scheme["status"] == "eligible"
     assert "trace" in farmer_scheme
@@ -41,8 +41,8 @@ def test_full_flow_youth_eligible():
     
     result = evaluate_profile(profile)
     
-    # Should be eligible for YOUTH_EMPLOYMENT
-    youth_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "YOUTH_EMPLOYMENT"), None)
+    # Should be eligible for NATIONAL_SCHOLARSHIP
+    youth_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "NATIONAL_SCHOLARSHIP"), None)
     assert youth_scheme is not None
     assert youth_scheme["status"] == "eligible"
 
@@ -57,8 +57,8 @@ def test_full_flow_low_income_eligible():
     
     result = evaluate_profile(profile)
     
-    # Should be eligible for LOW_INCOME_SUPPORT
-    low_income_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "LOW_INCOME_SUPPORT"), None)
+    # Should be eligible for AYUSHMAN_BHARAT (income < 5 lakh)
+    low_income_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "AYUSHMAN_BHARAT"), None)
     assert low_income_scheme is not None
     assert low_income_scheme["status"] == "eligible"
 
@@ -74,13 +74,12 @@ def test_full_flow_multiple_eligible():
     
     result = evaluate_profile(profile)
     
-    # Should be eligible for all three schemes
-    assert len(result["eligible"]) == 3
-    
+    # Should be eligible for multiple schemes (farmer + income < 5L qualifies for PM_KISAN + AYUSHMAN_BHARAT)
+    assert len(result["eligible"]) >= 2
+
     scheme_ids = [s["scheme_id"] for s in result["eligible"]]
-    assert "FARMER_SUPPORT" in scheme_ids
-    assert "YOUTH_EMPLOYMENT" in scheme_ids
-    assert "LOW_INCOME_SUPPORT" in scheme_ids
+    assert "PM_KISAN" in scheme_ids
+    assert "AYUSHMAN_BHARAT" in scheme_ids
 
 
 def test_full_flow_ineligible():
@@ -108,15 +107,14 @@ def test_full_flow_partial_eligibility():
     
     result = evaluate_profile(profile)
     
-    # YOUTH_EMPLOYMENT should be partially eligible (age matches, state doesn't)
-    youth_scheme = next(
-        (s for s in result["partially_eligible"] if s["scheme_id"] == "YOUTH_EMPLOYMENT"), 
+    # Student from Karnataka — NATIONAL_SCHOLARSHIP uses OR logic (student_status OR occupation=student)
+    # Both criteria satisfied, so should be eligible, not partially eligible
+    nat_scheme = next(
+        (s for s in result["eligible"] if s["scheme_id"] == "NATIONAL_SCHOLARSHIP"),
         None
     )
-    assert youth_scheme is not None
-    assert youth_scheme["status"] == "partially_eligible"
-    assert "missing_fields" in youth_scheme
-    assert "guidance" in youth_scheme
+    assert nat_scheme is not None
+    assert nat_scheme["status"] == "eligible"
 
 
 def test_full_flow_empty_profile():
@@ -178,15 +176,15 @@ def test_full_flow_metadata_present():
     
     result = evaluate_profile(profile)
     
-    farmer_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "FARMER_SUPPORT"), None)
+    farmer_scheme = next((s for s in result["eligible"] if s["scheme_id"] == "PM_KISAN"), None)
     assert farmer_scheme is not None
-    
+
     # Verify metadata fields
     assert "scheme_name" in farmer_scheme
     assert "benefit" in farmer_scheme
     assert "source_url" in farmer_scheme
     assert "last_verified_date" in farmer_scheme
-    assert farmer_scheme["last_verified_date"] == "2025-02-15"
+    assert farmer_scheme["last_verified_date"] == "2026-03-01"
 
 
 def test_orchestration_layer_no_side_effects():

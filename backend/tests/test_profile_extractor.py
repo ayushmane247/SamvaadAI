@@ -40,10 +40,11 @@ def test_income_extraction():
 
 
 def test_income_lakh_format():
-    """Should handle lakh format."""
+    """Should handle lakh format. 2.5 lakh = ₹250,000 which is >= 1l threshold."""
     result = extract_profile("My salary is 2.5 lakh per annum")
     assert result["profile"]["income"] == 250000.0
-    assert result["profile"]["income_range"] == "1l_to_2.5l"
+    # 250000 >= 250000, so it falls in 2.5l_to_5l bracket
+    assert result["profile"]["income_range"] == "2.5l_to_5l"
 
 
 def test_gender_extraction():

@@ -12,8 +12,8 @@ import os
 from core.config import config
 
 # Bedrock settings (canonical source: core/config.py)
-MODEL_ID: str = "anthropic.claude-3-haiku-20240307-v1:0"
-REGION: str = "us-east-1"
+MODEL_ID: str = "global.amazon.nova-2-lite-v1:0"
+REGION: str = "ap-south-1"
 TEMPERATURE: float = config.BEDROCK_TEMPERATURE
 MAX_TOKENS: int = config.BEDROCK_MAX_TOKENS
 TIMEOUT_SECONDS: int = config.BEDROCK_TIMEOUT_SECONDS

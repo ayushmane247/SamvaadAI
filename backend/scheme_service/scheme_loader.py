@@ -114,13 +114,13 @@ def _load_schemes_from_s3() -> List[Dict]:
     if _s3_client is None:
         raise RuntimeError("S3 client not available")
 
-    schemes: List[Dict] = []
+    schemes_by_id: Dict[str, Dict] = {}  # Deduplication map
 
     try:
         paginator = _s3_client.get_paginator("list_objects_v2")
         page_iterator = paginator.paginate(
             Bucket=config.S3_BUCKET_NAME,
-            Prefix="maharashtra/"
+            Prefix=SCHEME_PREFIX
         )
 
         for page in page_iterator:
@@ -141,7 +141,16 @@ def _load_schemes_from_s3() -> List[Dict]:
                     scheme = json.loads(body)
 
                     if _validate_scheme(scheme):
-                        schemes.append(scheme)
+                        scheme_id = scheme["scheme_id"]
+                        
+                        # Deduplication: keep most recent version
+                        if scheme_id in schemes_by_id:
+                            logger.warning(
+                                f"Duplicate scheme {scheme_id} found in {key}, "
+                                f"keeping most recent version"
+                            )
+                        
+                        schemes_by_id[scheme_id] = scheme
 
                 except Exception as e:
                     logger.error(
@@ -149,11 +158,14 @@ def _load_schemes_from_s3() -> List[Dict]:
                     )
                     continue
 
+        # Convert map to list
+        schemes = list(schemes_by_id.values())
+        
         # Deterministic ordering guarantee
         schemes.sort(key=lambda s: s.get("scheme_id", ""))
 
         logger.info(
-            f"Loaded {len(schemes)} schemes from bucket {config.S3_BUCKET_NAME}"
+            f"Loaded {len(schemes)} unique schemes from bucket {config.S3_BUCKET_NAME}"
         )
 
         return schemes
@@ -173,7 +185,7 @@ def load_schemes() -> List[Dict]:
     # -------------------------
     # Test/Dev Environment → Prototype Schemes
     # -------------------------
-    if config.is_test() or config.is_development():
+    if config.is_test():
         return _load_prototype_schemes()
 
     # -------------------------
