@@ -154,7 +154,7 @@ graph TB
 ### Backend
 - **Framework**: FastAPI 0.134
 - **Language**: Python 3.13
-- **AI**: Amazon Bedrock (Claude/Nova)
+- **AI**: Amazon Bedrock (Nova)
 - **Storage**: Amazon S3, DynamoDB
 - **Deployment**: AWS Lambda + API Gateway
 - **Testing**: Pytest (82 tests, 100% pass rate)
