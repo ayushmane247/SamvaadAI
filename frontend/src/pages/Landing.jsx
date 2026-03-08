@@ -107,9 +107,17 @@ export default function Landing() {
       </p>
 
       <div className="mt-8 flex gap-4">
+        <Link 
+        to ="/auth">
         <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full font-semibold shadow-lg">
           Get Started with Voice
-        </button>
+        </button> 
+        </Link>
+
+        {/* <link rel="stylesheet" href="" />
+        <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-full font-semibold shadow-lg">
+          Get Started with Voice
+        </button> */}
 
         <button className="px-6 py-3 rounded-full border-gray-300 dark:border-gray-700 bg-green-500 hover:bg-green-600 text-white">
           Learn More
