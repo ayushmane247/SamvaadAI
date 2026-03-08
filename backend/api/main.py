@@ -10,15 +10,17 @@ Responsibilities:
 - CORS configuration
 """
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from mangum import Mangum
 
 from api.routes import router
 from core.middleware import RequestTrackingMiddleware, RateLimitMiddleware
 from core.config import config
 from core.logging_config import logger
+from llm_service.bedrock_client import is_available as bedrock_is_available
 
 config.validate()
 
@@ -31,6 +33,25 @@ app = FastAPI(
     version=config.API_VERSION,
     root_path=root_path
 )
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Enforce maximum request body size."""
+    
+    MAX_SIZE = 10 * 1024  # 10KB
+    
+    async def dispatch(self, request: Request, call_next):
+        if request.method in ["POST", "PUT", "PATCH"]:
+            content_length = request.headers.get("content-length")
+            if content_length and int(content_length) > self.MAX_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Request body too large (max {self.MAX_SIZE} bytes)"
+                )
+        
+        response = await call_next(request)
+        return response
+
+app.add_middleware(RequestSizeLimitMiddleware)
 
 # Middleware (order matters: outermost runs first)
 # 1. Request tracking (outermost — adds request ID + logging)
@@ -58,9 +79,15 @@ def health():
     Health check endpoint.
     
     Returns:
-        Status indicator
+        Status indicator with service health details
     """
-    return {"status": "ok", "version": config.API_VERSION}
+    health_status = {
+        "status": "ok",
+        "version": config.API_VERSION,
+        "mode": "hybrid" if config.BEDROCK_ENABLED else "deterministic",
+        "bedrock_available": bedrock_is_available() if config.BEDROCK_ENABLED else None,
+    }
+    return health_status
 
 
 @app.exception_handler(Exception)

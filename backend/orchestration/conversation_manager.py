@@ -118,13 +118,17 @@ class ConversationManager:
             Dict with profile, eligibility, response, schemes, documents, and optional session_id.
         """
         start_time = time.time()
+        metrics = {}
+        llm_enhanced = False
 
         try:
             logger.info("Processing user query")
 
             # ── Step 1 — Deterministic profile extraction (always runs) ──
+            t0 = time.time()
             extraction = extract_profile(query, language)
             extracted_profile = extraction["profile"]
+            metrics["extraction_ms"] = round((time.time() - t0) * 1000, 2)
 
             logger.info(
                 "Profile extracted",
@@ -135,13 +139,17 @@ class ConversationManager:
             )
 
             # ── Step 2 — ProfileMemory update ──
+            t0 = time.time()
             memory = self._get_memory(session_id)
             memory.update(extracted_profile)
             profile = memory.get_profile()
             missing_fields = memory.get_missing_fields()
+            metrics["memory_ms"] = round((time.time() - t0) * 1000, 2)
 
             # ── Step 3 — Deterministic eligibility evaluation (free) ──
+            t0 = time.time()
             eligibility = self.evaluate(profile)
+            metrics["evaluation_ms"] = round((time.time() - t0) * 1000, 2)
 
             logger.info(
                 "Eligibility evaluated",
@@ -156,9 +164,11 @@ class ConversationManager:
             )
 
             # ── Step 4 — Template response generation ──
+            t0 = time.time()
             response = self._build_template_response(
                 eligibility, missing_fields, language
             )
+            metrics["template_ms"] = round((time.time() - t0) * 1000, 2)
 
             # ── Step 5 — Conditional LLM enhancement ──
             # Only call LLM if:
@@ -166,6 +176,7 @@ class ConversationManager:
             #   - Template response is below threshold length
             #   - Bedrock is available
             #   - Profile has enough data to justify the cost
+            metrics["llm_ms"] = 0
             if (
                 config.BEDROCK_ENABLED
                 and len(response) < LLM_ENHANCEMENT_THRESHOLD
@@ -175,6 +186,7 @@ class ConversationManager:
                 eligible = eligibility.get("eligible", [])
                 partial = eligibility.get("partially_eligible", [])
                 if eligible or partial:
+                    t0 = time.time()
                     try:
                         enhanced = self.gateway.generate_explanation(
                             eligibility=eligibility,
@@ -182,9 +194,13 @@ class ConversationManager:
                             query=query,
                             language=language,
                         )
+                        metrics["llm_ms"] = round((time.time() - t0) * 1000, 2)
                         if enhanced and len(enhanced) > len(response):
                             response = enhanced
+                            llm_enhanced = True
                     except Exception as e:
+                        metrics["llm_ms"] = round((time.time() - t0) * 1000, 2)
+                        metrics["llm_error"] = str(e)
                         logger.warning(
                             "Bedrock enhancement failed — using template response",
                             extra={"error": str(e), "error_type": type(e).__name__},
@@ -233,6 +249,7 @@ class ConversationManager:
                     "mode": "deterministic" if not self.gateway.bedrock_available else "hybrid",
                     "profile_fields": len(profile),
                     "eligible_count": len(eligibility.get("eligible", [])),
+                    **metrics,
                 },
             )
 
@@ -242,6 +259,7 @@ class ConversationManager:
                 "response": response,
                 "schemes": schemes,
                 "documents": documents,
+                "llm_enhanced": llm_enhanced,
             }
 
             if session_id:

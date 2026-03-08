@@ -50,3 +50,4 @@ class ConversationResponse(BaseModel):
     schemes: List[Dict[str, Any]] = []
     documents: List[str] = []
     session_id: Optional[str] = None
+    llm_enhanced: bool = False

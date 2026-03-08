@@ -40,7 +40,10 @@ router = APIRouter(prefix="/v1")
 # Singleton ConversationManager
 # Initialized once, reused across requests
 # =========================================
-_manager = ConversationManager()
+from session_store.session_service import SessionService
+
+_session_service = SessionService()
+_manager = ConversationManager(session_service=_session_service)
 
 
 # =========================================

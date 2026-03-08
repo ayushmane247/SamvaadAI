@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SamvaadAI Serverless Backend
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        APP_ENV: production
+        DYNAMODB_TABLE_NAME: !Ref SessionsTable
+        S3_BUCKET_NAME: !Ref SchemesBucket
+        BEDROCK_ENABLED: 'true'
+
+Resources:
+  # ----------------------------------------------------------------------------
+  # DYNAMODB TABLE for Sessions
+  # ----------------------------------------------------------------------------
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "samvaadai-sessions-${AWS::StackName}"
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
+  # ----------------------------------------------------------------------------
+  # S3 BUCKET for Schemes
+  # ----------------------------------------------------------------------------
+  SchemesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "samvaadai-schemes-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ----------------------------------------------------------------------------
+  # API GATEWAY (HTTP API)
+  # ----------------------------------------------------------------------------
+  SamvaadHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+        AllowMethods:
+          - "*"
+        MaxAge: 600
+
+  # ----------------------------------------------------------------------------
+  # LAMBDA FUNCTION for FastAPI Backend
+  # ----------------------------------------------------------------------------
+  FastApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: api.main.handler
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref SamvaadHttpApi
+            Path: /{proxy+}
+            Method: ANY
+      Policies:
+        # Give Lambda permission to read/write to the DynamoDB Sessions Table
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        # Give Lambda permission to read from the S3 Schemes Bucket
+        - S3ReadPolicy:
+            BucketName: !Ref SchemesBucket
+        # Give Lambda permission to invoke AWS Bedrock Models
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL for Prod environment"
+    Value: !Sub "https://${SamvaadHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
+  SchemesBucketName:
+    Description: "S3 Bucket to upload your JSON Scheme Data"
+    Value: !Ref SchemesBucket
