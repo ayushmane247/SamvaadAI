@@ -150,8 +150,11 @@ const useConversationStore = create((set, get) => ({
             set((state) => ({
                 messages: [
                     ...state.messages,
-                    { role: "assistant", content: result.response },
-                ],
+                {
+                    role: "assistant",
+                    content: result.response || "I couldn't generate a response. Please try again.",
+                },
+            ],
                 sessionId: newSessionId,
                 profile: result.profile,
                 eligibility: {
@@ -160,7 +163,10 @@ const useConversationStore = create((set, get) => ({
                     ineligible: result.ineligibleSchemes,
                 },
                 schemes: result.schemes || [],
-                documents: result.documents || [],
+                documents:
+                result.documents?.length
+                ? result.documents
+                : (result.schemes || []).flatMap((s) => s.documents || []),
                 isLoading: false,
                 error: null,
                 _controller: null,
@@ -169,8 +175,14 @@ const useConversationStore = create((set, get) => ({
             return result;
         } catch (err) {
             // Ignore abort errors (user sent a new message)
-            if (err.name === "ApiError" && err.status === 0) return;
-            if (err.name === "AbortError") return;
+            if (err.name === "ApiError" && err.status === 0) {
+                set({ isLoading: false, _controller: null });
+                return;
+            }
+            if (err.name === "AbortError") {
+                set({ isLoading: false, _controller: null });
+                return;
+            }
 
             set({
                 isLoading: false,

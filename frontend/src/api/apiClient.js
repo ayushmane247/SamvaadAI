@@ -15,7 +15,7 @@
 //   • Throttle guard (Phase 7 — cost protection)
 // ─────────────────────────────────────────────────────────────────
 
-const BASE_URL = import.meta.env.VITE_API_URL || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const TIMEOUT_MS = 10_000;
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 500;
@@ -164,6 +164,8 @@ export async function sendConversation({
   sessionId = null,
   signal = null,
 }) {
+  console.log("sendConversation called with:", { query, language, sessionId });
+
   // ── Throttle: enforce minimum gap between requests ──
   const now = Date.now();
   const gap = now - _lastRequestTs;
@@ -185,9 +187,9 @@ export async function sendConversation({
     return _pending.get(cacheKey);
   }
 
-  // ── Build request ──
   const url = `${BASE_URL}/v1/conversation`;
   const requestId = uuidv4();
+
   const body = JSON.stringify({
     query,
     language,
@@ -212,58 +214,45 @@ export async function sendConversation({
           signal,
         );
 
-        // Capture request ID from backend
-        const requestId = response.headers.get("x-request-id");
-        if (requestId) {
-          console.debug(`[SamvaadAI] request_id=${requestId}`);
+        const backendRequestId = response.headers.get("x-request-id");
+        if (backendRequestId) {
+          console.debug(`[SamvaadAI] request_id=${backendRequestId}`);
         }
 
         if (!response.ok) {
-          throw await parseError(response, requestId);
+          throw await parseError(response, backendRequestId);
         }
 
         const data = await response.json();
         const result = normalizeConversationResponse(data);
 
-        // Store in cache
         setCache(cacheKey, result);
 
         return result;
       } catch (err) {
-        // Don't retry if the request was intentionally aborted
         if (err.name === "AbortError") {
           throw new ApiError(0, "Request cancelled", null);
         }
 
-        // Don't retry client errors (4xx)
-        if (
-          err instanceof ApiError &&
-          err.status >= 400 &&
-          err.status < 500
-        ) {
+        if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
           throw err;
         }
 
         lastError = err;
 
-        // Exponential backoff before next retry
         if (attempt < MAX_RETRIES - 1) {
           const delay = RETRY_BASE_MS * Math.pow(2, attempt);
-          console.warn(
-            `[SamvaadAI] Retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`,
-          );
+          console.warn(`[SamvaadAI] Retry ${attempt + 1}/${MAX_RETRIES} after ${delay}ms`);
           await sleep(delay);
         }
       }
     }
 
-    // All retries exhausted
     throw lastError instanceof ApiError
       ? lastError
       : new ApiError(0, lastError?.message || "Network error", null);
   })();
 
-  // Register pending request for dedup
   _pending.set(cacheKey, request);
   try {
     return await request;
