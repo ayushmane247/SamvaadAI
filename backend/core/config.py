@@ -18,7 +18,7 @@ class Config:
         Validate configuration values.
         In test mode this is skipped.
         """
-        if getattr(self, "ENV", "dev") == "test":
+        if self.APP_ENV == "test":
             return True
     
     # Environment
@@ -52,10 +52,12 @@ class Config:
     SCHEME_CACHE_TTL_SECONDS: int = int(os.getenv("SCHEME_CACHE_TTL_SECONDS", "300"))  # 5 minutes
 
     # Bedrock / LLM Configuration
-    BEDROCK_MODEL_ID: str = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
-    BEDROCK_TEMPERATURE: float = 0.0  # Deterministic output
+    BEDROCK_ENABLED: bool = os.getenv("BEDROCK_ENABLED", "false").lower() == "true"
+    BEDROCK_MODEL_ID: str = os.getenv("BEDROCK_MODEL_ID","anthropic.claude-3-sonnet-20240229-v1:0"
+)
+    BEDROCK_TEMPERATURE: float = 0.2  # Deterministic output
     BEDROCK_MAX_TOKENS: int = 1024
-    BEDROCK_TIMEOUT_SECONDS: int = int(os.getenv("BEDROCK_TIMEOUT_SECONDS", "10"))
+    BEDROCK_TIMEOUT_SECONDS: int = int(os.getenv("BEDROCK_TIMEOUT_SECONDS", "3"))  # 3s spec limit
 
     # Language Support
     SUPPORTED_LANGUAGES: list = ["en", "hi", "mr"]

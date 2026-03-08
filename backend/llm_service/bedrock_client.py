@@ -11,7 +11,7 @@ Architectural guarantees:
 - Structured error handling
 - Graceful fallback on AccessDeniedException / INVALID_PAYMENT_INSTRUMENT
 """
-
+import time
 import json
 import logging
 from typing import Optional, Dict, Any
@@ -53,14 +53,12 @@ class BedrockUnavailableError(Exception):
         super().__init__(f"Bedrock unavailable ({error_code}): {message}")
 
 
-# Error codes that indicate Bedrock is fundamentally unavailable
 _UNAVAILABLE_ERROR_CODES = {
     "AccessDeniedException",
     "UnrecognizedClientException",
     "ValidationException",
 }
 
-# Error messages that indicate payment issues
 _PAYMENT_ERROR_PHRASES = {
     "INVALID_PAYMENT_INSTRUMENT",
     "payment instrument",
@@ -68,17 +66,14 @@ _PAYMENT_ERROR_PHRASES = {
     "subscription",
 }
 
-# Module-level availability flag
 _bedrock_available: bool = True
 
 
 def is_available() -> bool:
-    """Check if Bedrock is currently available."""
     return _bedrock_available
 
 
 def _mark_unavailable(error_code: str):
-    """Mark Bedrock as unavailable after a fatal error."""
     global _bedrock_available
     _bedrock_available = False
     logger.warning(
@@ -88,12 +83,6 @@ def _mark_unavailable(error_code: str):
 
 
 class BedrockClient:
-    """
-    Reusable client for Amazon Bedrock Anthropic Claude models.
-
-    Use get_client() to obtain the module-level singleton instance
-    instead of constructing directly.
-    """
 
     def __init__(
         self,
@@ -118,52 +107,44 @@ class BedrockClient:
                 "region_name": self.region,
                 "config": boto_config,
             }
-            # Use explicit credentials only if provided (prefer IAM roles)
+
             if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY:
                 kwargs["aws_access_key_id"] = AWS_ACCESS_KEY_ID
                 kwargs["aws_secret_access_key"] = AWS_SECRET_ACCESS_KEY
 
             self.client = boto3.client(**kwargs)
+
             logger.info(f"Bedrock client initialized for model: {self.model_id}")
 
         except Exception as e:
             logger.error(f"Failed to initialize Bedrock client: {e}")
             raise
 
-    def invoke_model(self, prompt: str) -> str:
-        """
-        Send a prompt to the Bedrock Claude model and return the text response.
+    def invoke_model_with_response_stream(self, prompt: str) -> str:
 
-        Uses the Anthropic Messages API format required by Bedrock.
-
-        Args:
-            prompt: The user prompt string.
-
-        Returns:
-            The model's text response.
-
-        Raises:
-            BedrockUnavailableError: If Bedrock is unavailable (billing/access).
-            ClientError: If the Bedrock API call fails for other reasons.
-            TimeoutError: If the request exceeds the configured timeout.
-            ValueError: If the response cannot be parsed.
-        """
-        # Fast-fail if we already know Bedrock is down
         if not _bedrock_available:
             raise BedrockUnavailableError(
                 "CACHED", "Bedrock was previously marked unavailable"
             )
 
         body = json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": MAX_TOKENS,
-            "temperature": TEMPERATURE,
             "messages": [
-                {"role": "user", "content": prompt}
+                {
+                    "role": "user",
+                    "content": [
+                        {"text": prompt}
+                    ]
+                }
             ],
+            "inferenceConfig": {
+                "maxTokens": MAX_TOKENS,
+                "temperature": TEMPERATURE
+            }
         })
 
         try:
+
+            # FIX 1: Use invoke_model (not streaming)
             response = self.client.invoke_model(
                 modelId=self.model_id,
                 body=body,
@@ -171,12 +152,24 @@ class BedrockClient:
                 accept="application/json",
             )
 
+            # FIX 2: Parse response with multi-format support
             result = json.loads(response["body"].read())
-            text = "".join(
-                block.get("text", "")
-                for block in result.get("content", [])
-                if block.get("type") == "text"
-            )
+
+            # Handle multiple Bedrock response formats
+            text = None
+            
+            if "output" in result and "message" in result["output"]:
+                # Nova format: {"output": {"message": {"content": [{"text": "..."}]}}}
+                text = result["output"]["message"]["content"][0]["text"]
+            elif "content" in result:
+                # Claude format: {"content": [{"text": "..."}]}
+                text = result["content"][0]["text"]
+            elif "completion" in result:
+                # Legacy format: {"completion": "..."}
+                text = result["completion"]
+            else:
+                logger.error(f"Unknown Bedrock response format. Keys: {list(result.keys())}")
+                raise ValueError(f"Unexpected Bedrock response structure: {list(result.keys())}")
 
             if not text:
                 logger.warning("Bedrock returned empty response")
@@ -188,19 +181,19 @@ class BedrockClient:
             error_code = e.response["Error"]["Code"]
             error_message = e.response["Error"].get("Message", "")
 
-            # Check for fatal unavailability errors
             if error_code in _UNAVAILABLE_ERROR_CODES:
                 _mark_unavailable(error_code)
                 raise BedrockUnavailableError(error_code, error_message)
 
-            # Check for payment-related error messages
             for phrase in _PAYMENT_ERROR_PHRASES:
                 if phrase.lower() in error_message.lower():
                     _mark_unavailable(f"{error_code}:{phrase}")
                     raise BedrockUnavailableError(error_code, error_message)
 
             if error_code == "ThrottlingException":
-                logger.warning("Bedrock rate limited, retrying may help")
+                logger.warning("Bedrock rate limited, retrying once after backoff")
+                time.sleep(2)
+                return self.invoke_model_with_response_stream(prompt)
 
             logger.error(f"Bedrock API error: {error_code}")
             raise
@@ -210,28 +203,21 @@ class BedrockClient:
             raise
 
         except BedrockUnavailableError:
-            raise  # Re-raise without wrapping
+            raise
 
         except Exception as e:
             logger.error(f"Bedrock invoke_model failed: {e}")
             raise
 
 
-# =====================================
-# Module-Level Singleton
-# =====================================
-
 _instance: Optional[BedrockClient] = None
 
 
 def get_client() -> BedrockClient:
-    """
-    Return the module-level singleton BedrockClient.
 
-    Creates the client on first call, reuses on all subsequent calls.
-    Safe for Lambda container reuse.
-    """
     global _instance
+
     if _instance is None:
         _instance = BedrockClient()
+
     return _instance

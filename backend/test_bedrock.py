@@ -1,20 +1,14 @@
-import boto3
-import json
+from llm_service.bedrock_client import get_client
 
-client = boto3.client(
-    "bedrock-runtime",
-    region_name="us-east-1"
-)
+def main():
+    client = get_client()
 
-response = client.invoke_model(
-    modelId="anthropic.claude-3-haiku-20240307-v1:0",
-    body=json.dumps({
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 50,
-        "messages": [
-            {"role": "user", "content": "hello"}
-        ]
-    })
-)
+    prompt = "Explain what AWS Bedrock is in 2 sentences."
 
-print(response["body"].read())
+    response = client.invoke_model_with_response_stream(prompt)
+
+    print("\n=== MODEL RESPONSE ===\n")
+    print(response)
+
+if __name__ == "__main__":
+    main()

@@ -42,9 +42,9 @@ def test_evaluate_endpoint_success():
     assert "partially_eligible" in data
     assert "ineligible" in data
 
-    # Business validation (based on mock scheme loader)
+    # Business validation (based on prototype scheme loader)
     assert len(data["eligible"]) == 1
-    assert data["eligible"][0]["scheme_id"] == "FARMER_SUPPORT"
+    assert data["eligible"][0]["scheme_id"] == "PM_KISAN"
     
     # Verify request ID header
     assert "X-Request-ID" in response.headers
