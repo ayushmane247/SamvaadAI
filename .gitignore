@@ -60,6 +60,12 @@ htmlcov/
 
 .aider*
 
+# Ignore all docs
+/docs/*
+
+# But keep these two
+!/docs/requirements.md
+!/docs/design.md
 
 docs\AI_ENGINEERING_WORKFLOW.md
 docs\BACKEND_EXECUTION_ROADMAP.md
