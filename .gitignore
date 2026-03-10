@@ -56,29 +56,47 @@ htmlcov/
 # -----------------------------
 *.sqlite3
 
-.config.kiro
+.config.
 
-.aider*
-
-# Ignore all docs
+# -----------------------------
+# Docs
+# -----------------------------
+# Ignore all docs by default
 /docs/*
 
-# But keep these two
+# Keep these tracked
 !/docs/requirements.md
 !/docs/design.md
 
-docs\AI_ENGINEERING_WORKFLOW.md
-docs\BACKEND_EXECUTION_ROADMAP.md
-docs\ENGINEERING_ARCHITECTURE_REVIEW.md
-docs\PROJECT_ENGINEERING_RULEBOOK.md
+# Ignore old docs locally without deleting
+/docs/AI_ENGINEERING_WORKFLOW.md
+/docs/BACKEND_EXECUTION_ROADMAP.md
+/docs/ENGINEERING_ARCHITECTURE_REVIEW.md
+/docs/PROJECT_ENGINEERING_RULEBOOK.md
+/docs/PHASE_12_READINESS.md
+/docs/PHASE_13_SIMULATION.md
+/docs/PHASE_14_FINAL_REPORT.md
+/docs/SAMVAADAI_ENGINEERING_AUDIT_REPORT.md
 
-backend\llm_service\MODULE_OVERVIEW.md
+# Backend docs
+backend/ARCHITECTURE.md
+backend/LOGGING_GUIDE.md
 
-frontend\FRONTEND_INTEGRATION_PLAN.md
-frontend\PUSHKAR_QUICK_START.md
-frontend\tldrawFile.png
-frontend\UI_IMPROVEMENTS_REQUIRED.md
+# -----------------------------
+# Backend LLM service
+# -----------------------------
+# Ignore MODULE_OVERVIEW.md locally without deleting
+/backend/llm_service/MODULE_OVERVIEW.md
 
-docs\PHASE_12_READINESS.md
-docs\PHASE_13_SIMULATION.md
-docs\PHASE_14_FINAL_REPORT.md
+# -----------------------------
+# Frontend / Other
+# -----------------------------
+frontend/FRONTEND_INTEGRATION_PLAN.md
+frontend/PUSHKAR_QUICK_START.md
+frontend/tldrawFile.png
+frontend/UI_IMPROVEMENTS_REQUIRED.md
+frontend/PUSHKAR_QUICK_START.md
+frontend/FRONTEND_ENGINEERING_AUDIT_REPORT.md
+
+
+.kiro/specs/samvaadai-platform-stabilization

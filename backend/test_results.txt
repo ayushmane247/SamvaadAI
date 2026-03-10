@@ -1,97 +1,24 @@
-﻿============================= test session starts =============================
-platform win32 -- Python 3.13.2, pytest-8.3.5, pluggy-1.6.0 -- C:\Users\Aniket\AppData\Local\Programs\Python\Python313\python.exe
+﻿=================================== test session starts ====================================
+platform win32 -- Python 3.13.2, pytest-9.0.2, pluggy-1.6.0
 rootdir: D:\Projects\12.0 AWS SamvaadAI\backend
 configfile: pytest.ini
-plugins: anyio-4.9.0, dash-3.0.4, Faker-37.3.0, langsmith-0.5.0
-collecting ... collected 82 items
+plugins: anyio-4.12.1, base-url-2.1.0, playwright-0.7.2
+collected 82 items                                                                          
 
-tests/test_api.py::test_health_endpoint PASSED                           [  1%]
-tests/test_api.py::test_evaluate_endpoint_success PASSED                 [  2%]
-tests/test_api.py::test_evaluate_endpoint_missing_profile PASSED         [  3%]
-tests/test_api.py::test_evaluate_endpoint_null_profile PASSED            [  4%]
-tests/test_api.py::test_session_start PASSED                             [  6%]
-tests/test_api.py::test_request_id_tracking PASSED                       [  7%]
-tests/test_api.py::test_deterministic_output PASSED                      [  8%]
-tests/test_e2e_scenarios.py::test_farmer_from_maharashtra PASSED         [  9%]
-tests/test_e2e_scenarios.py::test_student_from_delhi PASSED              [ 10%]
-tests/test_e2e_scenarios.py::test_multi_turn_conversation PASSED         [ 12%]
-tests/test_e2e_scenarios.py::test_low_income_eligibility PASSED          [ 13%]
-tests/test_e2e_scenarios.py::test_business_owner_mudra PASSED            [ 14%]
-tests/test_e2e_scenarios.py::test_response_includes_documents PASSED     [ 15%]
-tests/test_e2e_scenarios.py::test_hindi_conversation PASSED              [ 17%]
-tests/test_e2e_scenarios.py::test_session_id_returned PASSED             [ 18%]
-tests/test_e2e_scenarios.py::test_no_session_id_works PASSED             [ 19%]
-tests/test_engine.py::test_equals_operator PASSED                        [ 20%]
-tests/test_engine.py::test_not_equals_operator PASSED                    [ 21%]
-tests/test_engine.py::test_greater_than_operator PASSED                  [ 23%]
-tests/test_engine.py::test_less_than_operator PASSED                     [ 24%]
-tests/test_engine.py::test_between_operator PASSED                       [ 25%]
-tests/test_engine.py::test_in_operator PASSED                            [ 26%]
-tests/test_engine.py::test_not_in_operator PASSED                        [ 28%]
-tests/test_engine.py::test_contains_operator PASSED                      [ 29%]
-tests/test_engine.py::test_deterministic_repeatability PASSED            [ 30%]
-tests/test_engine.py::test_edge_case_missing_field PASSED                [ 31%]
-tests/test_engine.py::test_edge_case_null_value PASSED                   [ 32%]
-tests/test_engine.py::test_edge_case_wrong_type PASSED                   [ 34%]
-tests/test_engine.py::test_partially_eligible_logic PASSED               [ 35%]
-tests/test_engine.py::test_trace_included PASSED                         [ 36%]
-tests/test_engine.py::test_multiple_schemes PASSED                       [ 37%]
-tests/test_engine.py::test_output_sorted PASSED                          [ 39%]
-tests/test_engine.py::test_performance PASSED                            [ 40%]
-tests/test_integration.py::test_full_flow_farmer_eligible PASSED         [ 41%]
-tests/test_integration.py::test_full_flow_youth_eligible PASSED          [ 42%]
-tests/test_integration.py::test_full_flow_low_income_eligible PASSED     [ 43%]
-tests/test_integration.py::test_full_flow_multiple_eligible PASSED       [ 45%]
-tests/test_integration.py::test_full_flow_ineligible PASSED              [ 46%]
-tests/test_integration.py::test_full_flow_partial_eligibility PASSED     [ 47%]
-tests/test_integration.py::test_full_flow_empty_profile PASSED           [ 48%]
-tests/test_integration.py::test_full_flow_deterministic PASSED           [ 50%]
-tests/test_integration.py::test_full_flow_trace_present PASSED           [ 51%]
-tests/test_integration.py::test_full_flow_metadata_present PASSED        [ 52%]
-tests/test_integration.py::test_orchestration_layer_no_side_effects PASSED [ 53%]
-tests/test_llm_service.py::test_intent_extraction PASSED                 [ 54%]
-tests/test_llm_service.py::test_explanation_generation PASSED            [ 56%]
-tests/test_llm_service.py::test_fallback_behavior PASSED                 [ 57%]
-tests/test_middleware.py::test_sanitize_strips_injection_phrases PASSED  [ 58%]
-tests/test_middleware.py::test_sanitize_preserves_normal_input PASSED    [ 59%]
-tests/test_middleware.py::test_sanitize_collapses_whitespace PASSED      [ 60%]
-tests/test_middleware.py::test_sanitize_case_insensitive PASSED          [ 62%]
-tests/test_middleware.py::test_rate_limit_returns_429 PASSED             [ 63%]
-tests/test_middleware.py::test_rate_limit_recovery_after_window PASSED   [ 64%]
-tests/test_middleware.py::test_request_id_header_present PASSED          [ 65%]
-tests/test_profile_extractor.py::test_farmer_from_maharashtra PASSED     [ 67%]
-tests/test_profile_extractor.py::test_student_from_delhi PASSED          [ 68%]
-tests/test_profile_extractor.py::test_age_extraction PASSED              [ 69%]
-tests/test_profile_extractor.py::test_income_extraction PASSED           [ 70%]
-tests/test_profile_extractor.py::test_income_lakh_format PASSED          [ 71%]
-tests/test_profile_extractor.py::test_gender_extraction PASSED           [ 73%]
-tests/test_profile_extractor.py::test_caste_extraction PASSED            [ 74%]
-tests/test_profile_extractor.py::test_disability_extraction PASSED       [ 75%]
-tests/test_profile_extractor.py::test_hindi_input PASSED                 [ 76%]
-tests/test_profile_extractor.py::test_multiple_attributes PASSED         [ 78%]
-tests/test_profile_extractor.py::test_missing_fields_reported PASSED     [ 79%]
-tests/test_profile_extractor.py::test_empty_input PASSED                 [ 80%]
-tests/test_profile_extractor.py::test_business_owner PASSED              [ 81%]
-tests/test_profile_memory.py::test_empty_initial_profile PASSED          [ 82%]
-tests/test_profile_memory.py::test_update_single_field PASSED            [ 84%]
-tests/test_profile_memory.py::test_update_multiple_fields PASSED         [ 85%]
-tests/test_profile_memory.py::test_multi_turn_accumulation PASSED        [ 86%]
-tests/test_profile_memory.py::test_update_overwrites_non_none PASSED     [ 87%]
-tests/test_profile_memory.py::test_none_values_do_not_overwrite PASSED   [ 89%]
-tests/test_profile_memory.py::test_get_missing_fields PASSED             [ 90%]
-tests/test_profile_memory.py::test_is_complete PASSED                    [ 91%]
-tests/test_profile_memory.py::test_reset PASSED                          [ 92%]
-tests/test_session_service.py::test_create_session PASSED                [ 93%]
-tests/test_session_service.py::test_get_session_returns_none_for_missing PASSED [ 95%]
-tests/test_session_service.py::test_get_session_returns_item PASSED      [ 96%]
-tests/test_session_service.py::test_update_session_updates_profile_and_refreshes_ttl PASSED [ 97%]
-tests/test_session_service.py::test_update_session_invalid_key_raises PASSED [ 98%]
-tests/test_session_service.py::test_delete_session_removes_item PASSED   [100%]
+tests\test_api.py .......                                                             [  8%]
+tests\test_e2e_scenarios.py .........                                                 [ 19%]
+tests\test_engine.py .................                                                [ 40%]
+tests\test_integration.py ...........                                                 [ 53%]
+tests\test_llm_service.py ...                                                         [ 57%]
+tests\test_middleware.py .......                                                      [ 65%]
+tests\test_profile_extractor.py .............                                         [ 81%]
+tests\test_profile_memory.py .........                                                [ 92%]
+tests\test_session_service.py ......                                                  [100%]
 
-============================== warnings summary ===============================
-C:\Users\Aniket\AppData\Local\Programs\Python\Python313\Lib\site-packages\mangum\adapter.py:65
-  C:\Users\Aniket\AppData\Local\Programs\Python\Python313\Lib\site-packages\mangum\adapter.py:65: DeprecationWarning: There is no current event loop
+===================================== warnings summary ===================================== 
+venv\Lib\site-packages\mangum\adapter.py:65
+  D:\Projects\12.0 AWS SamvaadAI\backend\venv\Lib\site-packages\mangum\adapter.py:65: DeprecationWarning: There is no current event loop
     asyncio.get_event_loop()
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================== 82 passed, 1 warning in 5.89s ========================
+============================== 82 passed, 1 warning in 3.75s =============================== 
