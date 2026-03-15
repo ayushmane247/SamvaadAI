@@ -101,6 +101,52 @@ DISABILITY_KEYWORDS = {
     "divyang", "विकलांग", "दिव्यांग", "अपंग",
 }
 
+# ── Land holding patterns ────────────────────────────────────────
+
+LAND_HOLDING_PATTERNS = [
+    # "I own 2 acres", "2 acre land", "2 hectares"
+    r"(\d+\.?\d*)\s*(?:acres?|एकर)",
+    r"(\d+\.?\d*)\s*(?:hectares?|हेक्टेयर|हेक्टर)",
+    r"(?:own|have|possess)\s+(\d+\.?\d*)\s*(?:acres?|hectares?|bigha|बीघा)",
+    r"(\d+\.?\d*)\s*(?:bigha|बीघा)",
+]
+
+# Conversion: 1 acre ≈ 0.405 hectares, 1 bigha ≈ 0.25 acres ≈ 0.1 hectares
+_LAND_UNIT_TO_HECTARES = {
+    "acre": 0.405,
+    "acres": 0.405,
+    "एकर": 0.405,
+    "hectare": 1.0,
+    "hectares": 1.0,
+    "हेक्टेयर": 1.0,
+    "हेक्टर": 1.0,
+    "bigha": 0.1,
+    "बीघा": 0.1,
+}
+
+# ── Bank account keywords ────────────────────────────────────────
+
+BANK_ACCOUNT_YES = {
+    "bank account", "have account", "savings account", "jan dhan",
+    "बैंक खाता", "खाता है", "बँक खाते",
+}
+BANK_ACCOUNT_NO = {
+    "no bank account", "don't have account", "no account",
+    "बैंक खाता नहीं", "खाता नहीं",
+}
+
+# ── House ownership keywords ─────────────────────────────────────
+
+NO_HOUSE_KEYWORDS = {
+    "no house", "don't own house", "no pucca house", "homeless",
+    "renting", "rented house", "tenant", "no home",
+    "घर नहीं", "पक्का घर नहीं", "किराये पर",
+}
+OWNS_HOUSE_KEYWORDS = {
+    "own house", "own home", "pucca house", "my house",
+    "घर है", "अपना घर",
+}
+
 
 def extract_profile(text: str, language: str = "en") -> Dict[str, Any]:
     """
@@ -115,6 +161,54 @@ def extract_profile(text: str, language: str = "en") -> Dict[str, Any]:
     """
     text_lower = text.lower().strip()
 
+    # Check for structured input from QuickSelectChips (format: "field_name: value")
+    structured_match = re.match(r"^(\w+):\s*(.+)$", text)
+    if structured_match:
+        field_name = structured_match.group(1)
+        field_value = structured_match.group(2).strip()
+        
+        # Map field names to profile values
+        profile = {}
+        if field_name == "state":
+            profile["state"] = field_value
+        elif field_name == "occupation":
+            profile["occupation"] = field_value
+            if field_value == "farmer":
+                profile["farmer_status"] = True
+            elif field_value == "student":
+                profile["student_status"] = True
+        elif field_name == "age_group":
+            profile["age_group"] = field_value
+            # Also extract numeric age if possible
+            age_match = re.search(r"(\d+)", field_value)
+            if age_match:
+                profile["age"] = int(age_match.group(1))
+        elif field_name == "income_range":
+            profile["income_range"] = field_value
+        elif field_name == "gender":
+            profile["gender"] = field_value
+        elif field_name == "caste_category":
+            profile["caste_category"] = field_value
+        elif field_name == "farmer_status":
+            profile["farmer_status"] = field_value.lower() in ["true", "yes", "हाँ", "होय"]
+        elif field_name == "student_status":
+            profile["student_status"] = field_value.lower() in ["true", "yes", "हाँ", "होय"]
+        elif field_name == "disability_status":
+            profile["disability_status"] = field_value.lower() in ["true", "yes", "हाँ", "होय"]
+        
+        # Determine missing fields
+        all_fields = [
+            "occupation", "state", "income_range", "age_group",
+            "gender", "disability_status", "caste_category",
+            "farmer_status", "student_status",
+        ]
+        missing_fields = [f for f in all_fields if f not in profile]
+        
+        return {
+            "profile": profile,
+            "missing_fields": missing_fields,
+        }
+
     profile: Dict[str, Any] = {
         "occupation": _extract_occupation(text_lower, text),
         "state": _extract_state(text_lower, text),
@@ -125,6 +219,9 @@ def extract_profile(text: str, language: str = "en") -> Dict[str, Any]:
         "caste_category": _extract_caste(text_lower),
         "farmer_status": _is_farmer(text_lower),
         "student_status": _is_student(text_lower),
+        "land_holding": _extract_land_holding(text_lower),
+        "bank_account": _extract_bank_account(text_lower),
+        "house_ownership": _extract_house_ownership(text_lower),
     }
 
     # Also set legacy fields used by eligibility engine
@@ -336,4 +433,48 @@ def _is_student(text_lower: str) -> Optional[bool]:
     for kw in STUDENT_KEYWORDS:
         if kw in text_lower:
             return True
+    return None
+
+
+def _extract_land_holding(text_lower: str) -> Optional[float]:
+    """
+    Extract land holding in hectares from text.
+    Converts acres and bigha to hectares.
+    """
+    for pattern in LAND_HOLDING_PATTERNS:
+        match = re.search(pattern, text_lower)
+        if match:
+            try:
+                value = float(match.group(1))
+                # Determine unit from matched text
+                matched_text = match.group(0).lower()
+                for unit, factor in _LAND_UNIT_TO_HECTARES.items():
+                    if unit in matched_text:
+                        return round(value * factor, 3)
+                # Default: assume acres if no unit matched
+                return round(value * 0.405, 3)
+            except (ValueError, IndexError):
+                continue
+    return None
+
+
+def _extract_bank_account(text_lower: str) -> Optional[bool]:
+    """Extract bank account status from text."""
+    for kw in BANK_ACCOUNT_NO:
+        if kw in text_lower:
+            return False
+    for kw in BANK_ACCOUNT_YES:
+        if kw in text_lower:
+            return True
+    return None
+
+
+def _extract_house_ownership(text_lower: str) -> Optional[str]:
+    """Extract house ownership status from text."""
+    for kw in NO_HOUSE_KEYWORDS:
+        if kw in text_lower:
+            return "no_pucca_house"
+    for kw in OWNS_HOUSE_KEYWORDS:
+        if kw in text_lower:
+            return "owns_house"
     return None

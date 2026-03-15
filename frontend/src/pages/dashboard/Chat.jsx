@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mic, MicOff, Send, Sparkles, AlertCircle, RotateCcw, BarChart2, ExternalLink, CheckCircle2, FileText } from "lucide-react";
+import { Mic, MicOff, Send, Sparkles, AlertCircle, RotateCcw, BarChart2, ExternalLink, CheckCircle2, FileText, Volume2, VolumeX } from "lucide-react";
 import useUIStore from "../../store/useUIStore";
 import useConversationStore from "../../store/useConversationStore";
+import QuickSelectChips from "../../components/QuickSelectChips";
 import { t } from "../../lib/i18n";
 
 // ── Language → BCP-47 locale map ─────────────────────────────────
@@ -17,7 +18,9 @@ const LOW_CONFIDENCE_MSG = {
 
 // ── Voice output helper ──────────────────────────────────────────
 function speak(text, locale) {
-  if (!window.speechSynthesis) return;
+  const isMuted = useUIStore.getState().voiceMuted;
+  if (isMuted || !window.speechSynthesis) return;
+  
   window.speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang = locale;
@@ -45,6 +48,8 @@ const WELCOME = {
 export default function Chat() {
   const navigate = useNavigate();
   const language = useUIStore((s) => s.language);
+  const voiceMuted = useUIStore((s) => s.voiceMuted);
+  const toggleVoiceMute = useUIStore((s) => s.toggleVoiceMute);
   const locale = LOCALE_MAP[language] ?? "en-IN";
 
   // ── Store ──────────────────────────────────────────────────────
@@ -54,6 +59,7 @@ export default function Chat() {
   const eligibility = useConversationStore((s) => s.eligibility);
   const schemes = useConversationStore((s) => s.schemes);
   const documents = useConversationStore((s) => s.documents);
+  const currentQuestion = useConversationStore((s) => s.currentQuestion);
   const sendMessage = useConversationStore((s) => s.sendMessage);
   const clearError = useConversationStore((s) => s.clearError);
   const resetConversation = useConversationStore((s) => s.resetConversation);
@@ -77,7 +83,7 @@ export default function Chat() {
   // ── Scroll to bottom on new messages ───────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, currentQuestion]);
 
   // ── Speak welcome on mount ─────────────────────────────────────
   useEffect(() => {
@@ -212,7 +218,7 @@ export default function Chat() {
       : messages;
 
   return (
-    <div className="relative flex flex-col h-[calc(100vh-140px)] bg-transparent">
+    <div className="relative flex h-[calc(100vh-140px)] bg-transparent gap-4">
       {/* ── Listening Pulse Overlay ── */}
       {isListening && (
         <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
@@ -225,28 +231,37 @@ export default function Chat() {
         </div>
       )}
 
-      {/* ── Message Thread ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-8 space-y-8 max-w-4xl mx-auto w-full">
-        {displayMessages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex animate-in fade-in slide-in-from-bottom-2 duration-500 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            {msg.role === "assistant" && (
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 mr-3 mt-auto shadow-lg shadow-blue-600/20">
-                <Sparkles size={14} className="text-white" />
-              </div>
-            )}
+      {/* ── Main Chat Area ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* ── Message Thread ── */}
+        <div className="flex-1 overflow-y-auto px-4 py-8 space-y-8 max-w-4xl mx-auto w-full">
+        {displayMessages.map((msg, i) => {
+          // Skip empty assistant messages when there's a question
+          if (msg.role === "assistant" && !msg.content.trim() && currentQuestion) {
+            return null;
+          }
+          
+          return (
             <div
-              className={`max-w-[80%] px-6 py-4 rounded-[2rem] text-sm leading-relaxed shadow-xl ${msg.role === "user"
-                ? "bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-tr-none shadow-blue-600/20"
-                : "bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-900 dark:text-gray-100 dark:border dark:border-white/5 rounded-tl-none shadow-black/5"
-                }`}
+              key={i}
+              className={`flex animate-in fade-in slide-in-from-bottom-2 duration-500 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {msg.content}
+              {msg.role === "assistant" && (
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 mr-3 mt-auto shadow-lg shadow-blue-600/20">
+                  <Sparkles size={14} className="text-white" />
+                </div>
+              )}
+              <div
+                className={`max-w-[80%] px-6 py-4 rounded-[2rem] text-sm leading-relaxed shadow-xl ${msg.role === "user"
+                  ? "bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-tr-none shadow-blue-600/20"
+                  : "bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-900 dark:text-gray-100 dark:border dark:border-white/5 rounded-tl-none shadow-black/5"
+                  }`}
+              >
+                {msg.content}
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {/* ── Processing Indicator (Phase 6) ── */}
         {isLoading && (
@@ -293,91 +308,25 @@ export default function Chat() {
           </div>
         )}
 
-        <div ref={bottomRef} className="h-20" />
+        {/* ── Quick Select Question ── */}
+        {!isLoading && currentQuestion && (
+          <QuickSelectChips
+            question={currentQuestion}
+            onSelect={(value, label) => {
+              // Send a structured message that the extractor can parse
+              // Format: "field_name: value"
+              const structuredMessage = `${currentQuestion.field}: ${value}`;
+              handleSend(structuredMessage);
+            }}
+            language={language}
+          />
+        )}
+
+        <div ref={bottomRef} className="h-4" />
       </div>
 
-      {/* ── Scheme Cards ── */}
-      {schemes.length > 0 && !isLoading && (
-        <div className="px-6 pb-2">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-2 px-1">
-              {t("eligible_schemes", language) || "Eligible Schemes"}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {schemes.map((scheme, idx) => (
-                <div
-                  key={scheme.id || idx}
-                  className="glass rounded-2xl p-4 border border-white/10 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-500"
-                  style={{ animationDelay: `${idx * 100}ms` }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <h4 className="font-bold text-sm text-gray-900 dark:text-white">{scheme.name}</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{scheme.benefit}</p>
-                    </div>
-                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${scheme.status === "eligible"
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}>
-                      {scheme.status === "eligible" ? "✓ Eligible" : "~ Partial"}
-                    </span>
-                  </div>
-                  {scheme.url && (
-                    <a
-                      href={scheme.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      <ExternalLink size={12} />
-                      {t("apply_now", language) || "Apply Now"}
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Document Checklist ── */}
-      {documents.length > 0 && !isLoading && (
-        <div className="px-6 pb-2">
-          <div className="max-w-4xl mx-auto glass rounded-2xl p-4 border border-white/10 shadow-lg">
-            <p className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-3">
-              <FileText size={12} />
-              {t("required_documents", language) || "Required Documents"}
-            </p>
-            <ul className="space-y-2">
-              {documents.map((doc, idx) => (
-                <li key={idx} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                  {doc}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* ── View Results Floating CTA ── */}
-      {hasResults && !isLoading && (
-        <div className="px-6 pb-2">
-          <div className="max-w-3xl mx-auto">
-            <button
-              id="view-results-cta"
-              onClick={() => navigate("/dashboard/results")}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-sm hover:bg-emerald-500/20 transition-all animate-in fade-in slide-in-from-bottom-2 duration-500"
-            >
-              <BarChart2 size={16} />
-              {t("view_results", language)}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Floating Input Dock ── */}
-      <div className="px-6 pb-8">
+        {/* ── Floating Input Dock ── */}
+        <div className="px-6 pb-8">
         <div className="max-w-3xl mx-auto glass rounded-[2.5rem] p-3 shadow-2xl shadow-black/10 transition-all focus-within:ring-2 focus-within:ring-blue-500/20">
           <div className="flex flex-col gap-3">
             {/* Voice Toggle */}
@@ -395,6 +344,22 @@ export default function Chat() {
                 >
                   <RotateCcw size={10} />
                   {t("new_conversation", language)}
+                </button>
+                <button
+                  onClick={() => {
+                    toggleVoiceMute();
+                    if (!voiceMuted) {
+                      window.speechSynthesis?.cancel();
+                    }
+                  }}
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+                  title={voiceMuted ? "Unmute voice" : "Mute voice"}
+                >
+                  {voiceMuted ? (
+                    <VolumeX size={16} className="text-gray-500" />
+                  ) : (
+                    <Volume2 size={16} className="text-blue-600" />
+                  )}
                 </button>
                 <button
                   onClick={toggleListening}
@@ -437,6 +402,97 @@ export default function Chat() {
           </div>
         </div>
       </div>
+      </div>
+
+      {/* ── Results Sidebar (Collapsible) ── */}
+      {(schemes.length > 0 || documents.length > 0 || hasResults) && !isLoading && (
+        <div className="hidden lg:block w-96 flex-shrink-0 overflow-y-auto py-8 pr-4">
+          <div className="space-y-4 sticky top-8">
+            {/* Scheme Cards */}
+            {schemes.length > 0 && (
+              <div className="glass rounded-2xl p-5 border border-white/10 shadow-lg">
+                <p className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-4 flex items-center gap-2">
+                  <Sparkles size={14} />
+                  {t("eligible_schemes", language) || "Eligible Schemes"}
+                </p>
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                  {schemes.map((scheme, idx) => (
+                    <div
+                      key={scheme.id || idx}
+                      className="p-3 rounded-xl bg-white/50 dark:bg-gray-800/50 border border-white/10 hover:border-blue-500/30 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-bold text-xs text-gray-900 dark:text-white flex-1">{scheme.name}</h4>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${scheme.status === "eligible"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          }`}>
+                          {scheme.status === "eligible" ? "✓" : "~"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">{scheme.benefit}</p>
+                      {scheme.url && (
+                        <a
+                          href={scheme.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          <ExternalLink size={10} />
+                          {t("apply_now", language) || "Apply Now"}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Document Checklist */}
+            {documents.length > 0 && (
+              <div className="glass rounded-2xl p-5 border border-white/10 shadow-lg">
+                <p className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-gray-400 mb-4">
+                  <FileText size={14} />
+                  {t("required_documents", language) || "Required Documents"}
+                </p>
+                <ul className="space-y-2.5">
+                  {documents.map((doc, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+                      <CheckCircle2 size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="flex-1">{doc}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* View Full Results Button */}
+            {hasResults && (
+              <button
+                onClick={() => navigate("/dashboard/results")}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-sm hover:bg-emerald-500/20 transition-all shadow-lg"
+              >
+                <BarChart2 size={16} />
+                {t("view_results", language)}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile Results Banner (shows on small screens) ── */}
+      {hasResults && !isLoading && (
+        <div className="lg:hidden fixed bottom-24 left-4 right-4 z-40">
+          <button
+            onClick={() => navigate("/dashboard/results")}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500 text-white font-bold text-sm shadow-2xl shadow-emerald-500/30 hover:bg-emerald-600 transition-all animate-bounce"
+          >
+            <BarChart2 size={16} />
+            {schemes.length > 0 && <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{schemes.length}</span>}
+            {t("view_results", language)}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
