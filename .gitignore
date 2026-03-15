@@ -67,6 +67,7 @@ htmlcov/
 # Keep these tracked
 !/docs/requirements.md
 !/docs/design.md
+!/docs/csc_centers.json
 
 # Ignore old docs locally without deleting
 /docs/AI_ENGINEERING_WORKFLOW.md

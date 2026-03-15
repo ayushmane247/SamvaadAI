@@ -1,0 +1,184 @@
+{
+  "Maharashtra": {
+    "Mumbai": [
+      {
+        "name": "CSC Center - Andheri East",
+        "address": "Shop No. 15, Andheri East, Mumbai - 400069",
+        "contact": "+91-9876543210",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Bandra West",
+        "address": "Office No. 23, Bandra West, Mumbai - 400050",
+        "contact": "+91-9876543211",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      },
+      {
+        "name": "CSC Center - Borivali",
+        "address": "Ground Floor, Borivali West, Mumbai - 400092",
+        "contact": "+91-9876543212",
+        "services": ["scheme_applications", "document_verification", "insurance_services"]
+      },
+      {
+        "name": "CSC Center - Dadar",
+        "address": "Shop No. 8, Dadar East, Mumbai - 400014",
+        "contact": "+91-9876543213",
+        "services": ["scheme_applications", "document_verification", "pension_services"]
+      }
+    ],
+    "Pune": [
+      {
+        "name": "CSC Center - Shivajinagar",
+        "address": "Office No. 12, Shivajinagar, Pune - 411005",
+        "contact": "+91-9876543220",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Kothrud",
+        "address": "Shop No. 45, Kothrud, Pune - 411038",
+        "contact": "+91-9876543221",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      },
+      {
+        "name": "CSC Center - Hadapsar",
+        "address": "Ground Floor, Hadapsar, Pune - 411028",
+        "contact": "+91-9876543222",
+        "services": ["scheme_applications", "document_verification", "insurance_services"]
+      }
+    ],
+    "Nagpur": [
+      {
+        "name": "CSC Center - Sitabuldi",
+        "address": "Office No. 7, Sitabuldi, Nagpur - 440012",
+        "contact": "+91-9876543230",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Dharampeth",
+        "address": "Shop No. 18, Dharampeth, Nagpur - 440010",
+        "contact": "+91-9876543231",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      },
+      {
+        "name": "CSC Center - Wardha Road",
+        "address": "Ground Floor, Wardha Road, Nagpur - 440025",
+        "contact": "+91-9876543232",
+        "services": ["scheme_applications", "document_verification", "pension_services"]
+      }
+    ],
+    "Nashik": [
+      {
+        "name": "CSC Center - College Road",
+        "address": "Office No. 25, College Road, Nashik - 422005",
+        "contact": "+91-9876543240",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Panchavati",
+        "address": "Shop No. 33, Panchavati, Nashik - 422003",
+        "contact": "+91-9876543241",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      }
+    ],
+    "Aurangabad": [
+      {
+        "name": "CSC Center - Cantonment",
+        "address": "Office No. 14, Cantonment Area, Aurangabad - 431001",
+        "contact": "+91-9876543250",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - CIDCO",
+        "address": "Shop No. 28, CIDCO, Aurangabad - 431003",
+        "contact": "+91-9876543251",
+        "services": ["scheme_applications", "document_verification", "insurance_services"]
+      }
+    ],
+    "Kolhapur": [
+      {
+        "name": "CSC Center - Rajarampuri",
+        "address": "Ground Floor, Rajarampuri, Kolhapur - 416008",
+        "contact": "+91-9876543260",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Shahupuri",
+        "address": "Office No. 19, Shahupuri, Kolhapur - 416001",
+        "contact": "+91-9876543261",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      }
+    ]
+  },
+  "Karnataka": {
+    "Bangalore": [
+      {
+        "name": "CSC Center - Koramangala",
+        "address": "Shop No. 42, Koramangala, Bangalore - 560034",
+        "contact": "+91-9876543300",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Jayanagar",
+        "address": "Office No. 16, Jayanagar, Bangalore - 560011",
+        "contact": "+91-9876543301",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      },
+      {
+        "name": "CSC Center - Whitefield",
+        "address": "Ground Floor, Whitefield, Bangalore - 560066",
+        "contact": "+91-9876543302",
+        "services": ["scheme_applications", "document_verification", "insurance_services"]
+      }
+    ],
+    "Mysore": [
+      {
+        "name": "CSC Center - Saraswathipuram",
+        "address": "Office No. 21, Saraswathipuram, Mysore - 570009",
+        "contact": "+91-9876543310",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Vijayanagar",
+        "address": "Shop No. 35, Vijayanagar, Mysore - 570017",
+        "contact": "+91-9876543311",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      }
+    ]
+  },
+  "Gujarat": {
+    "Ahmedabad": [
+      {
+        "name": "CSC Center - Satellite",
+        "address": "Office No. 31, Satellite, Ahmedabad - 380015",
+        "contact": "+91-9876543400",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Navrangpura",
+        "address": "Shop No. 27, Navrangpura, Ahmedabad - 380009",
+        "contact": "+91-9876543401",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      },
+      {
+        "name": "CSC Center - Maninagar",
+        "address": "Ground Floor, Maninagar, Ahmedabad - 380008",
+        "contact": "+91-9876543402",
+        "services": ["scheme_applications", "document_verification", "insurance_services"]
+      }
+    ],
+    "Surat": [
+      {
+        "name": "CSC Center - Adajan",
+        "address": "Office No. 24, Adajan, Surat - 395009",
+        "contact": "+91-9876543410",
+        "services": ["scheme_applications", "document_verification", "digital_services"]
+      },
+      {
+        "name": "CSC Center - Vesu",
+        "address": "Shop No. 38, Vesu, Surat - 395007",
+        "contact": "+91-9876543411",
+        "services": ["scheme_applications", "document_verification", "banking_services"]
+      }
+    ]
+  }
+}
