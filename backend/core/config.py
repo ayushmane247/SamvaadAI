@@ -45,6 +45,20 @@ class Config:
     ENABLE_STRUCTURED_LOGGING: bool = os.getenv("ENABLE_STRUCTURED_LOGGING", "true").lower() == "true"
     ENABLE_LATENCY_TRACKING: bool = os.getenv("ENABLE_LATENCY_TRACKING", "true").lower() == "true"
     
+    # Adaptive Questioning Configuration (Phase 2)
+    ADAPTIVE_QUESTIONING_ENABLED: bool = os.getenv("ADAPTIVE_QUESTIONING_ENABLED", "true").lower() == "true"
+    ADAPTIVE_QUESTIONING_CACHE_ENABLED: bool = os.getenv("ADAPTIVE_QUESTIONING_CACHE_ENABLED", "true").lower() == "true"
+    ADAPTIVE_QUESTIONING_PERFORMANCE_THRESHOLD_MS: int = int(os.getenv("ADAPTIVE_QUESTIONING_PERFORMANCE_THRESHOLD_MS", "100"))
+    
+    # Simulation-based Adaptive Questioning (New Implementation)
+    SIMULATION_BASED_QUESTIONING_ENABLED: bool = os.getenv("SIMULATION_BASED_QUESTIONING_ENABLED", "true").lower() == "true"
+    
+    # Scheme Explainability Engine
+    SCHEME_EXPLAINABILITY_ENABLED: bool = os.getenv("SCHEME_EXPLAINABILITY_ENABLED", "true").lower() == "true"
+    
+    # High-value scheme detection keywords
+    HIGH_VALUE_KEYWORDS: list = ["lakh", "₹", "insurance", "subsidy", "pension"]
+    
     ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
     
     # Scheme Caching
@@ -52,12 +66,12 @@ class Config:
     SCHEME_CACHE_TTL_SECONDS: int = int(os.getenv("SCHEME_CACHE_TTL_SECONDS", "300"))  # 5 minutes
 
     # Bedrock / LLM Configuration
-    BEDROCK_ENABLED: bool = os.getenv("BEDROCK_ENABLED", "false").lower() == "true"
-    BEDROCK_MODEL_ID: str = os.getenv("BEDROCK_MODEL_ID","anthropic.claude-3-sonnet-20240229-v1:0"
-)
+    BEDROCK_ENABLED: bool = os.getenv("BEDROCK_ENABLED", "true").lower() == "true"
+    BEDROCK_MODEL_ID: str = os.getenv("BEDROCK_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
     BEDROCK_TEMPERATURE: float = 0.2  # Deterministic output
     BEDROCK_MAX_TOKENS: int = 1024
     BEDROCK_TIMEOUT_SECONDS: int = int(os.getenv("BEDROCK_TIMEOUT_SECONDS", "3"))  # 3s spec limit
+    LLM_ENHANCEMENT_THRESHOLD: int = int(os.getenv("LLM_ENHANCEMENT_THRESHOLD", "300"))  # Increased from 150
 
     # Language Support
     SUPPORTED_LANGUAGES: list = ["en", "hi", "mr"]

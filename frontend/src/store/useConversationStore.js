@@ -66,6 +66,7 @@ const useConversationStore = create((set, get) => ({
     eligibility: null,
     schemes: [],
     documents: [],
+    currentQuestion: null,
     isLoading: false,
     error: null,
 
@@ -167,6 +168,7 @@ const useConversationStore = create((set, get) => ({
                 result.documents?.length
                 ? result.documents
                 : (result.schemes || []).flatMap((s) => s.documents || []),
+                currentQuestion: result.question || null,
                 isLoading: false,
                 error: null,
                 _controller: null,
@@ -207,6 +209,7 @@ const useConversationStore = create((set, get) => ({
             eligibility: null,
             schemes: [],
             documents: [],
+            currentQuestion: null,
             isLoading: false,
             error: null,
             _controller: null,

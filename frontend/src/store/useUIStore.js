@@ -3,6 +3,7 @@ import { create } from "zustand";
 const useUIStore = create((set) => ({
   theme: "light",
   language: "en",
+  voiceMuted: false,
 
   toggleTheme: () =>
     set((state) => ({
@@ -10,6 +11,9 @@ const useUIStore = create((set) => ({
     })),
 
   setLanguage: (lang) => set({ language: lang }),
+
+  toggleVoiceMute: () =>
+    set((state) => ({ voiceMuted: !state.voiceMuted })),
 }));
 
 export default useUIStore;

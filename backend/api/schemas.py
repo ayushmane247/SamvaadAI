@@ -47,6 +47,7 @@ class ConversationResponse(BaseModel):
     profile: Dict[str, Any]
     eligibility: Dict[str, Any]
     response: str
+    question: Optional[Dict[str, Any]] = None
     schemes: List[Dict[str, Any]] = []
     documents: List[str] = []
     session_id: Optional[str] = None

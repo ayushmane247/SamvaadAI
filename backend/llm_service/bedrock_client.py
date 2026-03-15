@@ -142,7 +142,19 @@ class BedrockClient:
             }
         })
 
+        logger.info(
+            "Invoking Bedrock model",
+            extra={
+                "model_id": self.model_id,
+                "region": self.region,
+                "prompt_length": len(prompt),
+                "max_tokens": MAX_TOKENS,
+                "temperature": TEMPERATURE,
+            },
+        )
+
         try:
+            invoke_start = time.time()
 
             # FIX 1: Use invoke_model (not streaming)
             response = self.client.invoke_model(
@@ -151,6 +163,8 @@ class BedrockClient:
                 contentType="application/json",
                 accept="application/json",
             )
+
+            invoke_latency = (time.time() - invoke_start) * 1000
 
             # FIX 2: Parse response with multi-format support
             result = json.loads(response["body"].read())
@@ -175,11 +189,30 @@ class BedrockClient:
                 logger.warning("Bedrock returned empty response")
                 raise ValueError("Empty response from Bedrock")
 
+            logger.info(
+                "Bedrock invocation successful",
+                extra={
+                    "model_id": self.model_id,
+                    "latency_ms": round(invoke_latency, 2),
+                    "response_length": len(text),
+                    "response_format": "nova" if "output" in result else "claude" if "content" in result else "legacy",
+                },
+            )
+
             return text
 
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             error_message = e.response["Error"].get("Message", "")
+
+            logger.error(
+                "Bedrock ClientError",
+                extra={
+                    "error_code": error_code,
+                    "error_message": error_message,
+                    "model_id": self.model_id,
+                },
+            )
 
             if error_code in _UNAVAILABLE_ERROR_CODES:
                 _mark_unavailable(error_code)

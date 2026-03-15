@@ -4,6 +4,33 @@ from typing import Any, Dict, List
 from eligibility_engine.rule_parser import RuleParser
 
 
+# Maps income_range categorical values to numeric midpoints for eligibility evaluation
+_INCOME_RANGE_MAP = {
+    "below_1l":     50000,
+    "1l_to_2.5l":   175000,
+    "2.5l_to_5l":   375000,
+    "5l_to_10l":    750000,
+    "above_10l":    1500000,
+}
+
+
+def _normalize_profile(profile: dict) -> dict:
+    """
+    Add derived numeric fields from categorical profile fields.
+    Does NOT mutate the original profile.
+
+    - income_range → annual_income (if annual_income not already set)
+    """
+    normalized = dict(profile)
+
+    if "annual_income" not in normalized and "income_range" in normalized:
+        mapped = _INCOME_RANGE_MAP.get(normalized["income_range"])
+        if mapped is not None:
+            normalized["annual_income"] = mapped
+
+    return normalized
+
+
 def evaluate(profile: dict, schemes: list[dict]) -> dict:
     """
     Pure deterministic evaluation.
@@ -17,6 +44,7 @@ def evaluate(profile: dict, schemes: list[dict]) -> dict:
     Returns:
         dict with eligible, partially_eligible, ineligible lists
     """
+    profile = _normalize_profile(profile)
     eligible = []
     partially_eligible = []
     ineligible = []

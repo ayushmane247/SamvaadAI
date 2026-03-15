@@ -11,7 +11,7 @@ def test_empty_initial_profile():
     """New ProfileMemory should have empty profile."""
     mem = ProfileMemory()
     assert mem.get_profile() == {}
-    assert len(mem.get_missing_fields()) == 9  # All core fields missing
+    assert len(mem.get_missing_fields()) == len(mem.REQUIRED_FIELDS)  # All core fields missing
 
 
 def test_update_single_field():
@@ -96,9 +96,9 @@ def test_is_complete():
         "income_range": "below_1l",
         "age_group": "26-35",
         "gender": "male",
-        "disability_status": False,
+        "disability_status":"none",
         "caste_category": "general",
-        "farmer_status": True,
+        "farmer_status": "yes",
         "student_status": False,
     })
     assert mem.is_complete

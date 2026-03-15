@@ -92,10 +92,10 @@ async function parseError(response, requestId) {
  * Normalize the backend ConversationResponse into a UI-friendly shape.
  *
  * Backend returns:
- *   { profile, eligibility: { eligible[], partially_eligible[], ineligible[] }, response, session_id }
+ *   { profile, eligibility: { eligible[], partially_eligible[], ineligible[] }, response, question, session_id }
  *
  * We normalize to:
- *   { profile, eligibleSchemes, partialSchemes, ineligibleSchemes, response, sessionId }
+ *   { profile, eligibleSchemes, partialSchemes, ineligibleSchemes, response, question, sessionId }
  */
 function normalizeConversationResponse(data) {
   const eligibility = data.eligibility || {};
@@ -106,6 +106,7 @@ function normalizeConversationResponse(data) {
     partialSchemes: eligibility.partially_eligible || [],
     ineligibleSchemes: eligibility.ineligible || [],
     response: data.response || "",
+    question: data.question || null,
     schemes: data.schemes || [],
     documents: data.documents || [],
     sessionId: data.session_id || null,

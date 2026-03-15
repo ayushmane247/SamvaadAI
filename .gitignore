@@ -99,4 +99,8 @@ frontend/PUSHKAR_QUICK_START.md
 frontend/FRONTEND_ENGINEERING_AUDIT_REPORT.md
 
 
-.kiro/specs/samvaadai-platform-stabilization
+.kiro/specs/samvaadai-engineering-audit
+.kiro
+
+frontend/.env
+frontend/.env.production
